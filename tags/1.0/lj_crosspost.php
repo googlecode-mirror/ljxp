@@ -3,7 +3,7 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://ebroder.net/livejournal-crossposter/
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well. This plugin was inspired by <a href="http://blog.mytechaid.com/">Scott Buchanan's</a> <a href="http://blog.mytechaid.com/archives/2005/01/10/xanga-crossposter/">Xanga Crossposter</a>
-Version: 1.2
+Version: 1.3
 Author: Evan Broder
 Author URI: http://ebroder.net/
 
@@ -28,6 +28,9 @@ Author URI: http://ebroder.net/
 	DEALINGS IN THE SOFTWARE. 
 */
 
+define('LJXP_DOMAIN', '/ljxp/lang/ljxp');
+load_plugin_textdomain(LJXP_DOMAIN);
+
 require_once(ABSPATH . '/wp-includes/class-IXR.php');
 require_once(ABSPATH . '/wp-includes/template-functions-links.php');
 
@@ -46,6 +49,8 @@ function ljxp_display_options() {
 	add_option('ljxp_custom_name');
 	add_option('ljxp_privacy');
 	add_option('ljxp_comments');
+	add_option('ljxp_tag');
+	add_option('ljxp_more');
 	
 	// Retrieve these for the form
 	$old_host = get_option('ljxp_host');
@@ -54,6 +59,8 @@ function ljxp_display_options() {
 	$old_name_on = get_option('ljxp_custom_name_on');
 	$old_privacy = get_option('ljxp_privacy');
 	$old_comments = get_option('ljxp_comments');
+	$old_tag = get_option('ljxp_tag');
+	$old_more = get_option('ljxp_more');
 	
 	// host should default to LJ - it's what most people use anyway
 	if("" == $old_host) {
@@ -80,6 +87,20 @@ function ljxp_display_options() {
 	if("" == $old_comments) {
 		update_option('ljxp_comments', '0');
 		$old_comments = '0';
+	}
+	
+	// Default to allowing tags - only in strange i18n situations would you
+	// want them disabled
+	if("" == $old_tag) {
+		update_option('ljxp_tag', '1');
+		$old_tag = '1';
+	}
+	
+	// The default option is to link back to the original site if there is a
+	// <!--more--> tag
+	if("" == $old_more) {
+		update_option('ljxp_more', 'link');
+		$old_more = 'link';
 	}
 	
 	// If we're handling a submission, save the data
@@ -116,6 +137,16 @@ function ljxp_display_options() {
 			$old_comments = $_REQUEST['comments'];
 		}
 		
+		if($old_tag != $_REQUEST['tag']) {
+			update_option('ljxp_tag', $_REQUEST['tag']);
+			$old_tag = $_REQUEST['tag'];
+		}
+		
+		if($old_more != $_REQUEST['more']) {
+			update_option('ljxp_more', $_REQUEST['more']);
+			$old_more = $_REQUEST['more'];
+		}
+		
 		// If a password value is entered, md5 it for security and store to the
 		// database
 		// LJ challenge authentication works with only knowing the md5 of the
@@ -125,7 +156,9 @@ function ljxp_display_options() {
 		}
 		
 		// Copied from another options page
-		echo '<div id="message" class="updated fade"><p><strong>Options saved.</strong></p></div>';
+		echo '<div id="message" class="updated fade"><p><strong>';
+		_e('Options saved.', LJXP_DOMAIN);
+		echo '</strong></p></div>';
 	}
 	
 	// And, finally, output the form
@@ -133,94 +166,151 @@ function ljxp_display_options() {
 	// feel like it now, though
 ?>
 <div class="wrap">
-	<h2>LiveJournal Crossposter Options</h2>
+	<h2><?php _e('LiveJournal Crossposter Options', LJXP_DOMAIN); ?></h2>
 	<form method="post" action="<?php echo $_SERVER[REQUEST_URI]; ?>">
 		<table width="100%" cellspacing="2" cellpadding="5" class="editform">
 			<tr valign="top">
-				<th width="33%" scope="row">LiveJournal-compliant host:</th>
+				<th width="33%" scope="row"><?php _e('LiveJournal-compliant host:', LJXP_DOMAIN) ?></th>
 				<td><input name="host" type="text" id="host" value="<?php echo $old_host; ?>" size="40" /><br />
-				If you are using a LiveJournal-compliant site other than
-				LiveJournal (like DeadJournal), enter the domain name here.
-				LiveJournal users can use the default value</td>
+				<?php
+				
+				_e('If you are using a LiveJournal-compliant site other than LiveJournal (like DeadJournal), enter the domain name here. LiveJournal users can use the default value', LJXP_DOMAIN);
+				
+				?>
+				</td>
 			</tr>
 			<tr valign="top">
-				<th scope="row">LJ Username</th>
+				<th scope="row"><?php _e('LJ Username', LJXP_DOMAIN); ?></th>
 				<td><input name="username" type="text" id="username" value="<?php echo $old_username; ?>" size="40" /></td>
 			</tr>
 			<tr valign="top">
-				<th scope="row">LJ Password</th>
+				<th scope="row"><?php _e('LJ Password', LJXP_DOMAIN); ?></th>
 				<td><input name="password" type="password" id="password" value="" size="40" /><br />
-				Only enter a value if you wish to change the stored password.
-				Leaving this field blank will not erase any passwords already 
-				stored.</td>
+				<?php
+				
+				_e('Only enter a value if you wish to change the stored password. Leaving this field blank will not erase any passwords already stored.', LJXP_DOMAIN);
+				
+				?>
+				</td>
 			</tr>
 		</table>
 		<fieldset class="options">
-			<legend>Blog Header</legend>
+			<legend><?php _e('Blog Header', LJXP_DOMAIN); ?></legend>
 			<table width="100%" cellspacing="2" cellpadding="5" class="editform">
 				<tr valign="top">
-					<th width="33%" scope="row">Set blog name for crosspost header</th>
+					<th width="33%" scope="row"><?php _e('Set blog name for crosspost header', LJXP_DOMAIN); ?></th>
 					<td><label><input name="custom_name_on" type="radio" value="0" <?php
 					if(0 == $old_name_on) {
 						echo 'checked="checked" ';
 					}
-					?>/> Use the title of your blog (<?php echo bloginfo('name'); ?>)</label><br />
+					?>/> <?php printf(__('Use the title of your blog (%s)', LJXP_DOMAIN), get_settings('blogname')); ?></label><br />
 					<label><input name="custom_name_on" type="radio" value="1" <?php
 					if(1 == $old_name_on) {
 						echo 'checked="checked" ';
 					}
-					?>/> Use a custom title</label></td>
+					?>/> <? _e('Use a custom title', LJXP_DOMAIN); ?></label></td>
 				</tr>
 				<tr valign="top">
-					<th scope="row">Custom blog title</th>
+					<th scope="row"><?php _e('Custom blog title', LJXP_DOMAIN); ?></th>
 					<td><input name="custom_name" type="text" id="custom_name" value="<?php echo $old_name; ?>" size="40" /><br />
-					If you chose to use a custom title above, enter the title here. This will be used in the header which links back to this site at the top of each post on the LiveJournal.</td>
+					<?php
+					
+					_e('If you chose to use a custom title above, enter the title here. This will be used in the header which links back to this site at the top of each post on the LiveJournal.', LJXP_DOMAIN);
+					
+					?>
+					</td>
 				</tr>
 			</table>
 		</fieldset>
 		<fieldset class="options">
-			<legend>Post Privacy</legend>
+			<legend><?php _e('Post Privacy', LJXP_DOMAIN); ?></legend>
 			<table width="100%" cellspacing="2" cellpadding="5" class="editform">
 				<tr valign="top">
-					<th width="33%" scope="row">Privacy level for all posts to LiveJournal</th>
+					<th width="33%" scope="row"><?php _e('Privacy level for all posts to LiveJournal', LJXP_DOMAIN); ?></th>
 					<td><label><input name="privacy" type="radio" value="public" <?php
 					if("public" == $old_privacy) {
 						echo 'checked="checked" ';
 					}
-					?>/> Public</label><br />
+					?>/> <?php _e('Public', LJXP_DOMAIN); ?></label><br />
 					<label><input name="privacy" type="radio" value="private" <?php
 					if("private" == $old_privacy) {
 						echo 'checked="checked" ';
 					}
-					?>/> Private</label><br />
+					?>/> <?php _e('Private', LJXP_DOMAIN); ?></label><br />
 					<label><input name="privacy" type="radio" value="friends" <?php
 					if("friends" == $old_privacy) {
 						echo 'checked="checked" ';
 					}
-					?>/> Friends only</label><br />
+					?>/> <?php _e('Friends only', LJXP_DOMAIN); ?></label><br />
 				</tr>
 			</table>
 		</fieldset>
 		<fieldset class="options">
-			<legend>LiveJournal Comments</legend>
+			<legend><?php _e('LiveJournal Comments', LJXP_DOMAIN); ?></legend>
 			<table width="100%" cellspacing="2" cellpadding="5" class="editform">
 				<tr valign="top">
-					<th width="33%" scope="row">Should comments be allowed on LiveJournal?</th>
+					<th width="33%" scope="row"><?php _e('Should comments be allowed on LiveJournal?', LJXP_DOMAIN); ?></th>
 					<td><label><input name="comments" type="radio" value="0" <?php
 					if(0 == $old_comments) {
 						echo 'checked="checked" ';
 					}
-					?>/> Require users to comment on WordPress</label><br />
+					?>/> <?php _e('Require users to comment on WordPress', LJXP_DOMAIN); ?></label><br />
 					<label><input name="comments" type="radio" value="1" <?php
 					if("1" == $old_comments) {
 						echo 'checked="checked" ';
 					}
-					?>/> Allow comments on LiveJournal</label><br />
+					?>/> <?php _e('Allow comments on LiveJournal', LJXP_DOMAIN); ?></label><br />
 				</tr>
 			</table>
 		</fieldset>
-		<p class="submit">
-			<input type="submit" name="update_lj_options" value="Save Options &raquo;" />
+		<fieldset class="options">
+			<legend><?php _e('LiveJournal Tags', LJXP_DOMAIN); ?></legend>
+			<table width="100%" cellspacing="2" cellpadding="5" class="editform">
+				<tr valign="top">
+					<th width="33% scope="row"><?php _e('Tag entries on LiveJournal?', LJXP_DOMAIN); ?></th>
+					<td><label><input name="tag" type="radio" value="1" <?php
+					if(1 == $old_tag) {
+						echo 'checked="checked" ';
+					}
+					?>/> <?php _e('Tag LiveJournal entries with WordPress categories', LJXP_DOMAIN); ?></label><br />
+					<label><input name="tag" type="radio" value="0" <?php
+					if(0 == $old_tag) {
+						echo 'checked="checked" ';
+					}
+					?>/> <?php _e('Do not tag LiveJournal entries', LJXP_DOMAIN); ?></label><br />
+					<?php
+					
+					_e('You may with to disable this feature if you are posting in an alphabet other than the Roman alphabet. LiveJournal does not seem to support non-Roman alphabets in tag names.', LJXP_DOMAIN);
+					
+					?>
+					</td>
+				</tr>
+			</table>
+		</fieldset>
+		<fieldset class="options">
+			<legend><?php _e('Handling of &lt;--More--&gt;', LJXP_DOMAIN); ?></legend>
+			<table width="100%" cellspacing="2" cellpadding="5" class="editform">
+				<tr valign="top">
+					<th width="33%" scope="row"><?php _e('How should LJXP handle More tags?', LJXP_DOMAIN); ?></th>
+					<td><label><input name="more" type="radio" value="link" <?php
+					if("link" == $old_more) {
+						echo 'checked="checked" ';
+					}
+					?>/> <?php _e('Link back to WordPress', LJXP_DOMAIN); ?></label><br />
+					<label><input name="more" type="radio" value="lj-cut" <?php
+					if("lj-cut" == $old_more) {
+						echo 'checked="checked" ';
+					}
+					?>/> <?php _e('Use an lj-cut', LJXP_DOMAIN); ?></label><br />
+					<label><input name="more" type="radio" value="copy" <?php
+					if("copy" == $old_more) {
+						echo 'checked="checked" ';
+					}
+					?>/> <?php _e('Copy the entire entry to LiveJournal', LJXP_DOMAIN); ?></label><br />
+				</tr>
+			</table>
+		</fieldset>		<p class="submit">
+			<input type="submit" name="update_lj_options" value="<?php _e('Save Options', LJXP_DOMAIN); ?> &raquo;" />
 		</p>
 	</form>
 </div>
@@ -238,6 +328,8 @@ function ljxp_post($post_id) {
 	$custom_name = get_option('ljxp_custom_name');
 	$privacy = get_option('ljxp_privacy');
 	$comments = get_option('ljxp_comments');
+	$tag = get_option('ljxp_tag');
+	$more = get_option('ljxp_more');
 	
 	// And create our connection
 	$client = new IXR_Client($host, '/interface/xmlrpc');
@@ -259,8 +351,9 @@ function ljxp_post($post_id) {
 	
 	// If the post is not password protected, follow standard procedure
 	if(!$post->post_password) {
-		$postHeader = '<p style="border: 1px solid black; padding: 3px;"><b>Originally published at <a href="'.
-			get_permalink($post_id).'">';
+		$postHeader = '<p style="border: 1px solid black; padding: 3px;"><b>';
+		$postHeader .= __('Originally published at', LJXP_DOMAIN);
+		$postHeader .= ' <a href="'.get_permalink($post_id).'">';
 
 		// Insert the name of the page we're linking back to based on the options set
 		if(!$custom_name_on) {
@@ -274,8 +367,9 @@ function ljxp_post($post_id) {
 	}
 	// If the post is password protected, put up a special message
 	else {
-		$postHeader = '<p style="border: 1px solid black; padding: 3px;"><b>This post is password protected. You can read it at <a href="'.
-			get_permalink($post_id).'">';
+		$postHeader = '<p style="border: 1px solid black; padding: 3px;"><b>';
+		$postHeader .= __('This post is password protected. You can read it at', LJXP_DOMAIN);
+		$postHeader .= ' <a href="'.get_permalink($post_id).'">';
 
 		// Insert the name of the page we're linking back to based on the options set
 		if(!$custom_name_on) {
@@ -285,27 +379,53 @@ function ljxp_post($post_id) {
 			$postHeader .= $custom_name;
 		}
 
-		$postHeader .= '</a>, where it was originally posted.';
+		$postHeader .= '</a>, ';
+		$postHeader .= __('where it was originally posted', LJXP_DOMAIN);
+		$postHeader .= '.';
 	}
 	
 	// Depending on whether comments or allowed or not, alter the header
 	// appropriately
 	if($comments) {
-		$postHeader .= ' You can comment here or <a href="'.get_permalink($post_id).
-			'#comments">there</a>.</b></p>';
+		$postHeader .= sprintf(__(' You can comment here or <a href="%s#comments">there</a>.', LJXP_DOMAIN), get_permalink($post_id));
 	}
 	else {
-		$postHeader .= ' Please leave any <a href="'.get_permalink($post_id).
-			'#comments">comments</a> there.</b></p>';
+		$postHeader .= sprintf(__(' Please leave any <a href="%s#comments">comments</a> there.', LJXP_DOMAIN), get_permalink($post_id));
 	}
+	
+	$postHeader .= '</b></p>';
 	
 	// $the_event will eventually be passed to the LJ XML-RPC server. In all
 	// cases, we want whatever header we put together up above
 	$the_event = $postHeader;
 	
-	// and if the post isn't password protected, we want the actual post too
+	// and if the post isn't password protected, we need to put together the
+	// actual post
 	if(!$post->post_password) {
-		$the_event .= $post->post_content;
+		// and if there's no <!--more--> tag, we can spit it out and go on our
+		// merry way
+		if(strpos($post->post_content, "<!--more-->") === false) {
+			$the_event .= apply_filters('the_content', $post->post_content);
+		}
+		else {
+			$content = explode("<!--more-->", $post->post_content, 2);
+			$the_event .= apply_filters('the_content', $content[0]);
+			switch($more) {
+			case "copy":
+				$the_event .= apply_filters('the_content', $content[1]);
+				break;
+			case "link":
+				$the_event .= sprintf('<p><a href="%s#more-%s">', get_permalink($post_id), $post_id) .
+					__('Read the rest of this entry &raquo;', LJXP_DOMAIN) .
+					'</a></p>';
+				break;
+			case "lj-cut":
+				$the_event .= '<lj-cut text="' .
+					__('Read the rest of this entry &amp;raquo;', LJXP_DOMAIN) .
+					'">' . apply_filters('the_content', $content[1]) . '</lj-cut>';
+				break;
+			}
+		}
 	}
 	
 	// Retrieve the categories that the post is marked as - for LJ tagging
@@ -333,9 +453,12 @@ function ljxp_post($post_id) {
 	// md5(challenge + md5(pwd))
 	$args[auth_response] = md5($challenge . $pass);
 	
+	// Makes LJ expect UTF-8 text instead of ISO-8859-1
+	$args[ver] = "1";
+	
 	// The filters run the WP texturization - cleans up the code
-	$args[event] = mb_convert_encoding(apply_filters('the_content', $the_event), "HTML-ENTITIES", "UTF-8");
-	$args[subject] = mb_convert_encoding(apply_filters('the_title', $post->post_title), "HTML-ENTITIES", "UTF-8");
+	$args[event] = $the_event;
+	$args[subject] = apply_filters('the_title', $post->post_title);
 	
 	// All of the relevent dates and times
 	$args[year] = date('Y', $date);
@@ -350,12 +473,16 @@ function ljxp_post($post_id) {
 						// with <br>, etc) because it's already been done by
 						// the texturization
 						"opt_preformatted" => true,
-						// Set tags
-						"taglist" => $cat_string,
 						// If the most recent post is not the one being dealt
 						// with now, mark it as backdated so it doesn't jump to
 						// the top of friendlists and such
 						"opt_backdated" => !($post_id == $recent_id));
+	
+	// If tagging is enabled,
+	if($tag) {
+		// Set tags
+		$args[taglist] = $cat_string;
+	}
 	
 	// Set the privacy level according to the settings
 	switch($privacy) {
