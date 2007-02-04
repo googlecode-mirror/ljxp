@@ -3,7 +3,7 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://ebroder.net/livejournal-crossposter/
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well. This plugin was inspired by <a href="http://blog.mytechaid.com/">Scott Buchanan's</a> <a href="http://blog.mytechaid.com/archives/2005/01/10/xanga-crossposter/">Xanga Crossposter</a>
-Version: 1.4
+Version: 1.5
 Author: Evan Broder
 Author URI: http://ebroder.net/
 
@@ -41,6 +41,8 @@ function ljxp_add_pages() {
 
 // Display the options page
 function ljxp_display_options() {
+	global $wpdb;
+	
 	// Just in case they don't exist, create the options
 	add_option('ljxp_host');
 	add_option('ljxp_username');
@@ -51,6 +53,8 @@ function ljxp_display_options() {
 	add_option('ljxp_comments');
 	add_option('ljxp_tag');
 	add_option('ljxp_more');
+	add_option('ljxp_community');
+	add_option('ljxp_skip_cats');
 	
 	// Retrieve these for the form
 	$old_host = get_option('ljxp_host');
@@ -61,6 +65,11 @@ function ljxp_display_options() {
 	$old_comments = get_option('ljxp_comments');
 	$old_tag = get_option('ljxp_tag');
 	$old_more = get_option('ljxp_more');
+	$old_community = get_option('ljxp_community');
+	// Categories to be crossposted are stored not stored; categories to be
+	// "skipped" are instead. It's inverted so that new categories can be
+	// assumed to be in the clear
+	$old_skip_cats = get_option('ljxp_skip_cats');
 	
 	// host should default to LJ - it's what most people use anyway
 	if("" == $old_host) {
@@ -103,48 +112,96 @@ function ljxp_display_options() {
 		$old_more = 'link';
 	}
 	
+	if("" == $old_skip_cats) {
+		update_option('ljxp_skip_cats', array());
+		$old_skip_cats = array();
+	}
+	
 	// If we're handling a submission, save the data
-	if(isset($_REQUEST[update_lj_options])) {
+	if(isset($_REQUEST[update_lj_options]) || isset($_REQUEST[crosspost_all])) {
+		// If certain values get changed, we want to recrosspost all entries,
+		// so just in case, grab a list of all entries that have been
+		// crossposted
+		$repost_ids = $wpdb->get_col("SELECT post_id FROM $wpdb->postmeta WHERE meta_key='ljID'");
+		// This is just a tracking variable. If changes are made to multiple
+		// settings that would each require reposting everything, we don't want
+		// to spam LJ's servers, so we just keep track of whether or not we
+		// need to do a massive update at the end. This isn't necessary with
+		// deletions, as the function will just give up after the first time
+		$need_update = 0;
+		
 		// Avoiding useless queries - confirming that the value changed
 		if($old_host != $_REQUEST[host]) {
+			// So that we don't have crossposted residue left behind on the old
+			// server, get rid of all posts. This also eliminates potential
+			// problems when any crosspotsed entry is edited - before, LJXP
+			// would have tried to edit a nonexistent entry on the new server
+			ljxp_delete_all($repost_ids);
 			update_option('ljxp_host', $_REQUEST[host]);
 			// So that the new value shows up in the form
 			$old_host = $_REQUEST[host];
+			// Then repost everything
+			$need_update = 1;
 		}
 		
 		if($old_username != $_REQUEST[username]) {
+			ljxp_delete_all($repost_ids);
 			update_option('ljxp_username', $_REQUEST[username]);
 			$old_username = $_REQUEST[username];
+			$need_update = 1;
 		}
 		
-		if($old_name_on != $_REQUEST['custom_name_on']) {
-			update_option('ljxp_custom_name_on', $_REQUEST['custom_name_on']);
-			$old_name_on = $_REQUEST['custom_name_on'];
+		if($old_name_on != $_REQUEST[custom_name_on]) {
+			update_option('ljxp_custom_name_on', $_REQUEST[custom_name_on]);
+			$old_name_on = $_REQUEST[custom_name_on];
+			$need_update = 1;
 		}
 		
-		if($old_name != $_REQUEST['custom_name']) {
-			update_option('ljxp_custom_name', $_REQUEST['custom_name']);
-			$old_name = $_REQUEST['custom_name'];
+		if($old_name != $_REQUEST[custom_name]) {
+			update_option('ljxp_custom_name', $_REQUEST[custom_name]);
+			$old_name = $_REQUEST[custom_name];
+			if($old_name_on) {
+				$need_update = 1;
+			}
 		}
 		
-		if($old_privacy != $_REQUEST['privacy']) {
-			update_option('ljxp_privacy', $_REQUEST['privacy']);
-			$old_privacy = $_REQUEST['privacy'];
+		if($old_privacy != $_REQUEST[privacy]) {
+			update_option('ljxp_privacy', $_REQUEST[privacy]);
+			$old_privacy = $_REQUEST[privacy];
+			$need_update = 1;
 		}
 		
-		if($old_comments != $_REQUEST['comments']) {
-			update_option('ljxp_comments', $_REQUEST['comments']);
-			$old_comments = $_REQUEST['comments'];
+		if($old_comments != $_REQUEST[comments]) {
+			update_option('ljxp_comments', $_REQUEST[comments]);
+			$old_comments = $_REQUEST[comments];
+			$need_update = 1;
+			ljxp_post_all($repost_ids);
 		}
 		
-		if($old_tag != $_REQUEST['tag']) {
-			update_option('ljxp_tag', $_REQUEST['tag']);
-			$old_tag = $_REQUEST['tag'];
+		if($old_tag != $_REQUEST[tag]) {
+			update_option('ljxp_tag', $_REQUEST[tag]);
+			$old_tag = $_REQUEST[tag];
 		}
 		
-		if($old_more != $_REQUEST['more']) {
-			update_option('ljxp_more', $_REQUEST['more']);
-			$old_more = $_REQUEST['more'];
+		if($old_more != $_REQUEST[more]) {
+			update_option('ljxp_more', $_REQUEST[more]);
+			$old_more = $_REQUEST[more];
+			$need_update = 1;
+		}
+		
+		if($old_community != $_REQUEST[community]) {
+			ljxp_delete_all($repost_ids);
+			update_option('ljxp_community', $_REQUEST[community]);
+			$old_community = $_REQUEST[community];
+			$need_update = 1;
+		}
+		
+		sort($old_skip_cats);
+		$new_skip_cats = array_diff(get_all_category_ids(), (array)$_REQUEST[post_category]);
+		sort($new_skip_cats);
+		if($old_skip_cats != $new_skip_cats) {
+			update_option('ljxp_skip_cats', $new_skip_cats);
+			$old_skip_cats = $new_skip_cats;
 		}
 		
 		// If a password value is entered, md5 it for security and store to the
@@ -153,6 +210,16 @@ function ljxp_display_options() {
 		// password
 		if($_REQUEST[password] != "") {
 			update_option('ljxp_password', md5($_REQUEST[password]));
+		}
+		
+		if($need_update && isset($_REQUEST[update_lj_options])) {
+			@set_time_limit(0);
+			ljxp_post_all($repost_ids);
+		}
+		
+		if(isset($_REQUEST[crosspost_all])) {
+			@set_time_limit(0);
+			ljxp_post_all($wpdb->get_col("SELECT ID FROM $wpdb->posts WHERE post_status='publish'"));
 		}
 		
 		// Copied from another options page
@@ -166,8 +233,8 @@ function ljxp_display_options() {
 	// feel like it now, though
 ?>
 <div class="wrap">
-	<h2><?php _e('LiveJournal Crossposter Options', LJXP_DOMAIN); ?></h2>
 	<form method="post" action="<?php echo $_SERVER[REQUEST_URI]; ?>">
+		<h2><?php _e('LiveJournal Crossposter Options', LJXP_DOMAIN); ?></h2>
 		<table width="100%" cellspacing="2" cellpadding="5" class="editform">
 			<tr valign="top">
 				<th width="33%" scope="row"><?php _e('LiveJournal-compliant host:', LJXP_DOMAIN) ?></th>
@@ -189,6 +256,16 @@ function ljxp_display_options() {
 				<?php
 				
 				_e('Only enter a value if you wish to change the stored password. Leaving this field blank will not erase any passwords already stored.', LJXP_DOMAIN);
+				
+				?>
+				</td>
+			</tr>
+			<tr valign="top">
+				<th scope="row"><?php _e('Community', LJXP_DOMAIN); ?></th>
+				<td><input name="community" type="text" id="community" value="<?php echo $old_community; ?>" size="40" /><br />
+				<?php
+				
+				_e("If you wish your posts to be copied to a community, enter the community name here. Leaving this space blank will copy the posts to the specified user's journal instead", LJXP_DOMAIN);
 				
 				?>
 				</td>
@@ -288,7 +365,7 @@ function ljxp_display_options() {
 			</table>
 		</fieldset>
 		<fieldset class="options">
-			<legend><?php _e('Handling of &lt;--More--&gt;', LJXP_DOMAIN); ?></legend>
+			<legend><?php _e('Handling of &lt;!--More--&gt;', LJXP_DOMAIN); ?></legend>
 			<table width="100%" cellspacing="2" cellpadding="5" class="editform">
 				<tr valign="top">
 					<th width="33%" scope="row"><?php _e('How should LJXP handle More tags?', LJXP_DOMAIN); ?></th>
@@ -309,12 +386,42 @@ function ljxp_display_options() {
 					?>/> <?php _e('Copy the entire entry to LiveJournal', LJXP_DOMAIN); ?></label><br />
 				</tr>
 			</table>
-		</fieldset>		<p class="submit">
-			<input type="submit" name="update_lj_options" value="<?php _e('Save Options', LJXP_DOMAIN); ?> &raquo;" />
+		</fieldset>
+		<fieldset class="options">
+			<legend><?php _e('Category Selection', LJXP_DOMAIN); ?></legend>
+			<table width="100%" cellspacing="2" cellpadding="5" class="editform">
+				<tr valign="top">
+					<th width="33%" scope="row"><?php _e('Select which categories should be crossposted', LJXP_DOMAIN); ?></th>
+					<td>
+					<?php
+					
+					write_nested_categories(ljxp_cat_select(get_nested_categories(), $old_skip_cats));
+					
+					?><br />
+					<?php
+					
+					_e('Any post that has <em>at least one</em> of the above categories selected will be crossposted.');
+					
+					?>
+					</td>
+				</tr>
+			</table>
+		</fieldset>
+		<p class="submit">
+			<input type="submit" name="crosspost_all" value="<?php _e('Update Options and Crosspost All WordPress entries', LJXP_DOMAIN); ?>" />
+			<input type="submit" name="update_lj_options" value="<?php _e('Update Options'); ?>" style="font-weight: bold;" />
 		</p>
 	</form>
 </div>
 <?php
+}
+
+function ljxp_cat_select($cats, $selected_cats) {
+	foreach((array)$cats as $key=>$cat) {
+		$cats[$key][checked] = !in_array($cat[cat_ID], $selected_cats);
+		$cats[$key][children] = ljxp_cat_select($cat[children], $selected_cats);
+	}
+	return $cats;
 }
 
 function ljxp_post($post_id) {
@@ -322,7 +429,7 @@ function ljxp_post($post_id) {
 	
 	// If the post was manually set to not be crossposted, give up now
 	if(get_post_meta($post_id, 'no_lj', true)) {
-		return;
+		return $post_id;
 	}
 	
 	// Get the relevent info out of the database
@@ -335,6 +442,22 @@ function ljxp_post($post_id) {
 	$comments = get_option('ljxp_comments');
 	$tag = get_option('ljxp_tag');
 	$more = get_option('ljxp_more');
+	$community = get_option('ljxp_community');
+	$skip_cats = get_option('ljxp_skip_cats');
+	$copy_cats = array_diff(get_all_category_ids(), $skip_cats);
+	
+	// If the post shows up in the forbidden category list and it has been
+	// crossposted before (so the forbidden category list must have changed),
+	// delete the post. Otherwise, just give up now
+	$do_crosspost = 0;
+	foreach(wp_get_post_cats(1, $post_id) as $cat) {
+		if(in_array($cat, $copy_cats)) {
+			$do_crosspost = 1;
+		}
+	}
+	if(!$do_crosspost) {
+		return ljxp_delete($post_id);
+	}
 	
 	// And create our connection
 	$client = new IXR_Client($host, '/interface/xmlrpc');
@@ -502,6 +625,11 @@ function ljxp_post($post_id) {
 		$args[allowmask] = 1;
 	}
 	
+	// If crossposting to a community, specify that
+	if("" != $community) {
+		$args[usejournal] = $community;
+	}
+	
 	// Assume this is a new post
 	$method = 'LJ.XMLRPC.postevent';
 	
@@ -535,7 +663,7 @@ function ljxp_delete($post_id) {
 	// cross-posted, the value wouldn't be set, and there's no point in
 	// deleting entries that don't exist
 	if($ljxp_post_id == 0) {
-		return;
+		return $post_id;
 	}
 	
 	// Get the necessary login info	
@@ -595,7 +723,7 @@ function ljxp_edit($post_id) {
 	// Ensures that there's actually a value. If the post was never
 	// cross-posted, the value wouldn't be set, so we're done
 	if(0 == $ljxp_post_id) {
-		return;
+		return $post_id;
 	}
 	
 	$post = & get_post($post_id);
@@ -615,15 +743,15 @@ function ljxp_sidebar() {
 	global $post;
 ?>
 	<fieldset class="dbx-box">
-		<h3 class="dbx-handle"><?php _e('LiveJournal'); ?>:</h3>
+		<h3 class="dbx-handle"><?php _e('LiveJournal', LJXP_DOMAIN); ?>:</h3>
 		<div class="dbx-content">
 			<label for="ljxp_crosspost_go" class="selectit">
 			<input id="ljxp_crosspost_go" type="radio" name="ljxp_crosspost" value="1"<?php checked(get_post_meta($post->ID, 'no_lj', true), 0); ?>/>
-			<?php _e('Crosspost'); ?>
+			<?php _e('Crosspost', LJXP_DOMAIN); ?>
 			</label>
 			<label for="ljxp_crosspost_nogo" class="selectit">
 			<input id="ljxp_crosspost_nogo" type="radio" name="ljxp_crosspost" value="0"<?php checked(get_post_meta($post->ID, 'no_lj', true), 1); ?>/>
-			<?php _e('Do not crosspost'); ?>
+			<?php _e('Do not crosspost', LJXP_DOMAIN); ?>
 			</label>
 		</div>
 	</fieldset>
@@ -647,6 +775,18 @@ function ljxp_save($post_id) {
 		if(0 == $_POST[ljxp_crosspost]) {
 			add_post_meta($post_id, 'no_lj', '1');
 		}
+	}
+}
+
+function ljxp_delete_all($repost_ids) {
+	foreach((array)$repost_ids as $id) {
+		ljxp_delete($id);
+	}
+}
+
+function ljxp_post_all($repost_ids) {
+	foreach((array)$repost_ids as $id) {
+		ljxp_post($id);
 	}
 }
 
