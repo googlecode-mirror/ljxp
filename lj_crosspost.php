@@ -32,7 +32,9 @@ define('LJXP_DOMAIN', '/ljxp/lang/ljxp');
 load_plugin_textdomain(LJXP_DOMAIN);
 
 require_once(ABSPATH . '/wp-includes/class-IXR.php');
-require_once(ABSPATH . '/wp-includes/template-functions-links.php');
+if(version_compare($wp_version, "2.1", "<")) {
+	require_once(ABSPATH . '/wp-includes/template-functions-links.php');
+}
 
 // Create the LJXP Options Page
 function ljxp_add_pages() {
@@ -239,7 +241,7 @@ function ljxp_display_options() {
 
 		if(isset($_REQUEST['crosspost_all'])) {
 			@set_time_limit(0);
-			ljxp_post_all($wpdb->get_col("SELECT ID FROM $wpdb->posts WHERE post_status='publish'"));
+			ljxp_post_all($wpdb->get_col("SELECT ID FROM $wpdb->posts WHERE post_status='publish' AND post_type='post'"));
 		}
 
 		// Copied from another options page
@@ -644,7 +646,7 @@ function ljxp_post($post_id) {
 	$cat_string = implode(", ", $cat_names);
 
 	// Get the most recent post (to see if this is it - it it's not, backdate)
-	$recent_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_status='publish' ORDER BY post_date DESC LIMIT 1");
+	$recent_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_status='publish' AND post_type='post' ORDER BY post_date DESC LIMIT 1");
 
 	// Get a timestamp for retrieving dates later
 	$date = strtotime($post->post_date);
