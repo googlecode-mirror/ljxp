@@ -3,7 +3,7 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://ebroder.net/livejournal-crossposter/
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well. This plugin was inspired by <a href="http://blog.mytechaid.com/">Scott Buchanan's</a> <a href="http://blog.mytechaid.com/archives/2005/01/10/xanga-crossposter/">Xanga Crossposter</a>
-Version: 1.3
+Version: 1.4
 Author: Evan Broder
 Author URI: http://ebroder.net/
 
@@ -320,6 +320,11 @@ function ljxp_display_options() {
 function ljxp_post($post_id) {
 	global $wpdb;
 	
+	// If the post was manually set to not be crossposted, give up now
+	if(get_post_meta($post_id, 'no_lj', true)) {
+		return;
+	}
+	
 	// Get the relevent info out of the database
 	$host = get_option('ljxp_host');
 	$user = get_option('ljxp_username');
@@ -440,7 +445,7 @@ function ljxp_post($post_id) {
 	$cat_string = implode(", ", $cat_names);
 	
 	// Get the most recent post (to see if this is it - it it's not, backdate)
-	$recent_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_date_gmt <= '$now' AND post_status = 'publish' ORDER BY post_date_gmt DESC LIMIT 1");
+	$recent_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_status = 'publish' ORDER BY post_date DESC LIMIT 1");
 	
 	// Get a timestamp for retrieving dates later
 	$date = strtotime($post->post_date);
@@ -481,7 +486,7 @@ function ljxp_post($post_id) {
 	// If tagging is enabled,
 	if($tag) {
 		// Set tags
-		$args[taglist] = $cat_string;
+		$args[props][taglist] = $cat_string;
 	}
 	
 	// Set the privacy level according to the settings
@@ -582,7 +587,7 @@ function ljxp_delete($post_id) {
 
 function ljxp_edit($post_id) {
 	// This function will delete a post from LJ if it's changed from the
-	// published status
+	// published status or if crossposting was just disabled on this post
 	
 	// Pull the post_id
 	$ljxp_post_id = get_post_meta($post_id, 'ljID', true);
@@ -597,18 +602,63 @@ function ljxp_edit($post_id) {
 	
 	// See if the post is currently published. If it's been crossposted and its
 	// state isn't published, then it should be deleted
-	if('publish' != $post->post_status) {
+	// Also, if it has been crossposted but it's set to not crosspost, then
+	// delete it
+	if('publish' != $post->post_status || 1 == get_post_meta($post_id, 'no_lj', true)) {
 		ljxp_delete($post_id);
 	}
 	
 	return $post_id;
 }
 
+function ljxp_sidebar() {
+	global $post;
+?>
+	<fieldset class="dbx-box">
+		<h3 class="dbx-handle"><?php _e('LiveJournal'); ?>:</h3>
+		<div class="dbx-content">
+			<label for="ljxp_crosspost_go" class="selectit">
+			<input id="ljxp_crosspost_go" type="radio" name="ljxp_crosspost" value="1"<?php checked(get_post_meta($post->ID, 'no_lj', true), 0); ?>/>
+			<?php _e('Crosspost'); ?>
+			</label>
+			<label for="ljxp_crosspost_nogo" class="selectit">
+			<input id="ljxp_crosspost_nogo" type="radio" name="ljxp_crosspost" value="0"<?php checked(get_post_meta($post->ID, 'no_lj', true), 1); ?>/>
+			<?php _e('Do not crosspost'); ?>
+			</label>
+		</div>
+	</fieldset>
+<?php
+}
+
+function ljxp_save($post_id) {
+	// If the magic crossposting variable isn't equal to 'crosspost', then the
+	// box wasn't checked
+	// Using publish_post hook for the case of a state change---this will 
+	// be called before crossposting occurs
+	// Using save_post for the case where it's draft or private - the value
+	// still needs to be saved
+	// Using edit_post for the case in which it's changed from crossposted to
+	// not crossposted in an edit
+	
+	// At least one of those hooks is probably unnecessary, but I can't figure
+	// out which one
+	if(isset($_POST[ljxp_crosspost])) {
+		delete_post_meta($post_id, 'no_lj');
+		if(0 == $_POST[ljxp_crosspost]) {
+			add_post_meta($post_id, 'no_lj', '1');
+		}
+	}
+}
+
 add_action('admin_menu', 'ljxp_add_pages');
 if(get_option('ljxp_username') != "") {
-	add_action('publish_post', 'ljxp_post', 8);
-	add_action('edit_post', 'ljxp_edit', 8);
-	add_action('delete_post', 'ljxp_delete', 8);
+	add_action('publish_post', 'ljxp_post');
+	add_action('edit_post', 'ljxp_edit');
+	add_action('delete_post', 'ljxp_delete');
+	add_action('dbx_post_sidebar', 'ljxp_sidebar');
+	add_action('publish_post', 'ljxp_save', 1);
+	add_action('save_post', 'ljxp_save', 1);
+	add_action('edit_post', 'ljxp_save', 1);
 }
 
 ?>
