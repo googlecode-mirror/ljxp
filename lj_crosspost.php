@@ -3,7 +3,7 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://ebroder.net/plugins/ljxp.php
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well. This plugin was inspired by <a href="http://blog.mytechaid.com/">Scott Buchanan's</a> <a href="http://blog.mytechaid.com/archives/2005/01/10/xanga-crossposter/">Xanga Crossposter</a>
-Version: 1.0
+Version: 0.1
 Author: Evan Broder
 Author URI: http://ebroder.net/
 
@@ -30,6 +30,26 @@ Author URI: http://ebroder.net/
 
 require_once(ABSPATH . '/wp-includes/class-IXR.php');
 require_once(ABSPATH . '/wp-includes/template-functions-links.php');
+
+// Because of a bug (accidental feature?) in WP1.5, all post data is deleted
+// before the hooks are called. This is bad, because I need the metadata. So,
+// if we are going to be deleting a post, let's capture the info I need before
+// it goes away
+// deletepost is set on the main post edit page.
+// action=delete is set by the delete links on the Manage page
+if(isset($_REQUEST[deletepost]) || $_REQUEST[action] == "delete") {
+	// And the two mechanisms have different ways of setting the post ID
+	// just to make my joy complete
+	if(isset($_REQUEST[post_ID])) {
+		$post_id = $_REQUEST[post_ID];
+	}
+	else {
+		$post_id = $_REQUEST[post];
+	}
+	
+	// Finally, grab the LJ id before it goes anywhere
+	$ljxp_post_id = get_post_meta($post_id, 'ljID', true);
+}
 
 // Create the LJXP Options Page
 function ljxp_add_pages() {
@@ -146,7 +166,7 @@ function ljxp_post($post_id) {
 	// Bypassing the get_post() function because it caches and teh cache isn't
 	// updated when the entry is. A noble, query-saving idea, but not so hot
 	// in the implimentation, really
-	$post = & get_post($post_id);
+	$post = & $wpdb->get_row("SELECT * FROM $wpdb->posts WHERE ID=$post_id");
 	
 	// Get a timestamp for retrieving dates later
 	$date = strtotime($post->post_date);
@@ -198,8 +218,8 @@ function ljxp_post($post_id) {
 }
 
 function ljxp_delete($post_id) {
-	// Pull the post_id
-	$ljxp_post_id = get_post_meta($post_id, 'ljID', true);
+	// Got to pull in the value from global scope
+	global $ljxp_post_id;
 	
 	// Ensures that there's actually a value. If the post was never
 	// cross-posted, the value wouldn't be set, and there's no point in
