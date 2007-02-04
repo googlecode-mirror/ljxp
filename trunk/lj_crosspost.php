@@ -3,7 +3,7 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://ebroder.net/livejournal-crossposter/
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well. This plugin was inspired by <a href="http://blog.mytechaid.com/">Scott Buchanan's</a> <a href="http://blog.mytechaid.com/archives/2005/01/10/xanga-crossposter/">Xanga Crossposter</a>
-Version: 1.0.1
+Version: 1.1
 Author: Evan Broder
 Author URI: http://ebroder.net/
 
@@ -44,12 +44,14 @@ function ljxp_display_options() {
 	add_option('ljxp_password');
 	add_option('ljxp_custom_name_on');
 	add_option('ljxp_custom_name');
+	add_option('ljxp_privacy');
 	
 	// Retrieve these for the form
 	$old_host = get_option('ljxp_host');
 	$old_username = get_option('ljxp_username');
 	$old_name = get_option('ljxp_custom_name');
 	$old_name_on = get_option('ljxp_custom_name_on');
+	$old_privacy = get_option('ljxp_privacy');
 	
 	// host should default to LJ - it's what most people use anyway
 	if("" == $old_host) {
@@ -64,6 +66,12 @@ function ljxp_display_options() {
 	if("" == $old_name_on) {
 		update_option('ljxp_custom_name_on', '0');
 		$old_name_on = "0";
+	}
+	
+	// We're going to default to public posts - just because I say so
+	if("" == $old_privacy) {
+		update_option('ljxp_privacy', 'public');
+		$old_privacy = "public";
 	}
 	
 	// If we're handling a submission, save the data
@@ -88,6 +96,11 @@ function ljxp_display_options() {
 		if($old_name != $_REQUEST['custom_name']) {
 			update_option('ljxp_custom_name', $_REQUEST['custom_name']);
 			$old_name = $_REQUEST['custom_name'];
+		}
+		
+		if($old_privacy != $_REQUEST['privacy']) {
+			update_option('ljxp_privacy', $_REQUEST['privacy']);
+			$old_privacy = $_REQUEST['privacy'];
 		}
 		
 		// If a password value is entered, md5 it for security and store to the
@@ -135,13 +148,13 @@ function ljxp_display_options() {
 				<tr valign="top">
 					<th width="33%" scope="row">Set blog name for crosspost header</th>
 					<td><label><input name="custom_name_on" type="radio" value="0" <?php
-					if($old_name_on == 0) {
-						echo 'checked="checked"';
+					if(0 == $old_name_on) {
+						echo 'checked="checked" ';
 					}
 					?>/> Use the title of your blog (<?php echo bloginfo('name'); ?>)</label><br />
 					<label><input name="custom_name_on" type="radio" value="1" <?php
-					if($old_name_on == 1) {
-						echo 'checked="checked"';
+					if(1 == $old_name_on) {
+						echo 'checked="checked" ';
 					}
 					?>/> Use a custom title</label></td>
 				</tr>
@@ -149,6 +162,29 @@ function ljxp_display_options() {
 					<th scope="row">Custom blog title</th>
 					<td><input name="custom_name" type="text" id="custom_name" value="<?php echo $old_name; ?>" size="40" /><br />
 					If you chose to use a custom title above, enter the title here. This will be used in the header which links back to this site at the top of each post on the LiveJournal.</td>
+				</tr>
+			</table>
+		</fieldset>
+		<fieldset class="options">
+			<legend>Post Privacy</legend>
+			<table width="100%" cellspacing="2" cellpadding="5" class="editform">
+				<tr valign="top">
+					<th width="33%" scope="row">Privacy level for all posts to LiveJournal</th>
+					<td><label><input name="privacy" type="radio" value="public" <?php
+					if("public" == $old_privacy) {
+						echo 'checked="checked" ';
+					}
+					?>/> Public</label><br />
+					<label><input name="privacy" type="radio" value="private" <?php
+					if("private" == $old_privacy) {
+						echo 'checked="checked" ';
+					}
+					?>/> Private</label><br />
+					<label><input name="privacy" type="radio" value="friends" <?php
+					if("friends" == $old_privacy) {
+						echo 'checked="checked" ';
+					}
+					?>/> Friends only</label><br />
 				</tr>
 			</table>
 		</fieldset>
@@ -169,6 +205,7 @@ function ljxp_post($post_id) {
 	$pass = get_option('ljxp_password');
 	$custom_name_on = get_option('ljxp_custom_name_on');
 	$custom_name = get_option('ljxp_custom_name');
+	$privacy = get_option('ljxp_privacy');
 	
 	// And create our connection
 	$client = new IXR_Client($host, '/interface/xmlrpc');
@@ -192,7 +229,7 @@ function ljxp_post($post_id) {
 	
 	// Insert the name of the page we're linking back to based on the options set
 	if(!$custom_name_on) {
-		$postHeader .= bloginfo('name');
+		$postHeader .= get_option("blogname");
 	}
 	else {
 		$postHeader .= $custom_name;
@@ -228,6 +265,19 @@ function ljxp_post($post_id) {
 	$args[hour] = date('G', $date);
 	$args[min] = date('i', $date);
 	$args[props] = array("opt_nocomments" => true);
+	
+	// Set the privacy level according to the settings
+	switch($privacy) {
+	case "public":
+		$args[security] = "public";
+		break;
+	case "private":
+		$args[security] = "private";
+		break;
+	case "friends":
+		$args[security] = "usemask";
+		$args[allowmask] = 1;
+	}
 	
 	// Assume this is a new post
 	$method = 'LJ.XMLRPC.postevent';
