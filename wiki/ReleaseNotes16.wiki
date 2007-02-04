@@ -1,5 +1,4 @@
 #summary Changes in version 1.6 of LJXP
-#labels Featured
 
 = Bugs Repaired =
 
