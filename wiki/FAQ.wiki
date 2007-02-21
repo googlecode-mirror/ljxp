@@ -1,0 +1,9 @@
+#summary Frequently Asked Questions
+
+This section will grow with time.
+
+= Common Error Messages =
+
+* "Something went wrong - 208 : Client error: Invalid text encoding: The text entered is not a valid UTF-8 stream"*
+
+Solution: Tags must only use the standard English alphabet. If you're using diagritics or a foreign alphabet, either don't post the tags or figure out a way to translate them. For example, check out the solution that people have come up with for [http://ebroder.net/livejournal-crossposter/i18n/ LJXP in Russian].
