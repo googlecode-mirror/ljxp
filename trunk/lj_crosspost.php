@@ -554,7 +554,7 @@ function ljxp_post($post_id) {
 	}
 
 	if('' == $custom_header) {
-		$postHeader = '<p style="border: 1px solid black; padding: 3px;"><b>';
+		$postHeader = '<p style="border: 1px solid black; padding: 3px;"><strong>';
 
 		// If the post is not password protected, follow standard procedure
 		if(!$post->post_password) {
@@ -582,7 +582,7 @@ function ljxp_post($post_id) {
 			$postHeader .= sprintf(__(' Please leave any <a href="%s#comments">comments</a> there.', LJXP_DOMAIN), get_permalink($post_id));
 		}
 
-		$postHeader .= '</b></p>';
+		$postHeader .= '</strong></p>';
 	}
 	else {
 		$postHeader = $custom_header;
