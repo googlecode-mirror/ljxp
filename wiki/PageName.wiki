@@ -1,0 +1,5 @@
+#summary Changes for version 2.0 of LJXP
+#labels Featured
+
+This version is compatible with WP version 2.5.1.
+Two new administrators have taken over the source code for this project, a new website should be built soon for it!
