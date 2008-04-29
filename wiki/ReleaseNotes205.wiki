@@ -1,0 +1,4 @@
+#summary Changes for version 2.0.5 of LJXP
+#labels Featured
+
+This version is compatible with WP version 2.5.1, and retains compatibility with WP 2.0
