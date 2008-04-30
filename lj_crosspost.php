@@ -460,7 +460,7 @@ function ljxp_post($post_id) {
 						'pass' => get_option('ljxp_password'),
 						'custom_name_on' => get_option('ljxp_custom_name_on'),
 						'custom_name' => stripslashes(get_option('ljxp_custom_name')),
-						'privacy' => ( (get_post_meta($post_id, 'ljxp_privacy', true) == '') ?
+						'privacy' => ( (get_post_meta($post_id, 'ljxp_privacy', true) !== false) ?
 									get_post_meta($post_id, 'ljxp_privacy', true) :
 										get_option('ljxp_privacy') ),
 						'comments' => ( ( 0 != get_post_meta($post_id, 'ljxp_comments', true) ) ? ( 2 - get_post_meta($post_id, 'ljxp_comments', true) ) : get_option('ljxp_comments') ),
@@ -533,8 +533,8 @@ function ljxp_post($post_id) {
 	// convert retrieved objects to arrays of (term_id => name) pairs
 	$modify = create_function('$f, $n, $obj', 'global $$f; $p = &$$f; unset($p[$n]); $p[$obj->term_id] = $obj->name;');
 
-	if(count($tags > 0)) array_map($modify, array_fill(0, count($tags), 'tags'), array_keys($tags), array_values($tags));
-	if(count($cats > 0)) array_map($modify, array_fill(0, count($cats), 'cats'), array_keys($cats), array_values($cats));
+	if(count($tags) > 0) array_map($modify, array_fill(0, count($tags), 'tags'), array_keys($tags), array_values($tags));
+	if(count($cats) > 0) array_map($modify, array_fill(0, count($cats), 'cats'), array_keys($cats), array_values($cats));
 
 
 	switch($options['tag']){
@@ -681,6 +681,10 @@ function ljxp_post($post_id) {
 	case "friends":
 		$args['security'] = "usemask";
 		$args['allowmask'] = 1;
+		break;
+	default :
+		$args['security'] = "public";
+		break;
 	}
 
 	// Assume this is a new post
@@ -877,9 +881,11 @@ function ljxp_save($post_id) {
 		}
 	}
 	if(isset($_POST['ljxp_privacy'])) {
-		delete_post_meta($post_id, 'ljxp_privacy');
-		if("0" != $_POST['ljxp_privacy']) {
-			add_post_meta($post_id, 'ljxp_privacy', $_POST['ljxp_privacy']);
+		if($_POST['ljxp_privacy'] != 0) {
+			update_post_meta($post_id, 'ljxp_privacy', $_POST['ljxp_privacy']);
+		}
+		else{
+			delete_post_meta($post_id, 'ljxp_privacy');
 		}
 	}
 }
@@ -899,6 +905,7 @@ function ljxp_post_all($repost_ids) {
 add_action('admin_menu', 'ljxp_add_pages');
 if(get_option('ljxp_username') != "") {
 	add_action('publish_post', 'ljxp_post');
+	add_action('publish_future_post', 'ljxp_post');
 	add_action('edit_post', 'ljxp_edit');
 	add_action('delete_post', 'ljxp_delete');
 	add_action('dbx_post_sidebar', 'ljxp_sidebar');
