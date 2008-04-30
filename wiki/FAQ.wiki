@@ -2,7 +2,13 @@
 
 This section will grow with time.
 
-= Common Error Messages =
+== Common Error Messages ==
+
+* "Something went wrong - 302 : Client error: Can't edit post from requested journal" *
+
+Explanation: The reason for this message to be shown is that you probably have crossposted an entry before, deleted it manually, and then tried to edit it from WP again.
+
+Solution: Clean up all _ljxp_ fields in post custom fields, then make sure you have set the crossposting on, and save the entry again. This will result into a new entry being posted in your LiveJournal.
 
 * "Something went wrong - 208 : Client error: Invalid text encoding: The text entered is not a valid UTF-8 stream"*
 
