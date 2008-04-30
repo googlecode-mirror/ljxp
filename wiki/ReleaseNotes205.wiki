@@ -13,5 +13,6 @@ This version is compatible with WP version 2.5.1, and retains compatibility with
   * Russian translation updated
 
 *Known issues*:
-  * Updating all posts at once may throw several warning messages, such as for array_fill and array_map, which also leads to 'Cannot modify header information' error. This does not affect posting itself, but I will investigate and fix it.
-  * Delayed posting (Future posts) do not cross post automatically. This has something to do with publish_post action. Investigation to follow.
+  * ~~Updating all posts at once may throw several warning messages, such as for array_fill and array_map, which also leads to 'Cannot modify header information' error. This does not affect posting itself, but I will investigate and fix it.~~ Fixed in revision 51.
+  * ~~Delayed posting (Future posts) do not cross post automatically. This has something to do with publish_post action. Investigation to follow.~~ Fixed in revision 51.
+  * No known issues at this time
