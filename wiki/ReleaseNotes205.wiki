@@ -2,3 +2,6 @@
 #labels Featured
 
 This version is compatible with WP version 2.5.1, and retains compatibility with WP 2.0
+New authors for this plugin.
+New website as well:
+http://www.LJ-XP.com
