@@ -40,7 +40,6 @@ if((bool)version_compare($wp_version, '2.5', '<')  && file_exists(ABSPATH . '/wp
 	require_once(ABSPATH . '/wp-includes/template-links.php');
 }
 
-
 // Simulate wp-lj-comments by A-Bishop:
 
 if(!function_exists('lj_comments')){
@@ -460,10 +459,10 @@ function ljxp_post($post_id) {
 						'pass' => get_option('ljxp_password'),
 						'custom_name_on' => get_option('ljxp_custom_name_on'),
 						'custom_name' => stripslashes(get_option('ljxp_custom_name')),
-						'privacy' => ( (get_post_meta($post_id, 'ljxp_privacy', true) !== false) ?
+						'privacy' => ( (get_post_meta($post_id, 'ljxp_privacy', true) != 0) ?
 									get_post_meta($post_id, 'ljxp_privacy', true) :
 										get_option('ljxp_privacy') ),
-						'comments' => ( ( 0 != get_post_meta($post_id, 'ljxp_comments', true) ) ? ( 2 - get_post_meta($post_id, 'ljxp_comments', true) ) : get_option('ljxp_comments') ),
+						'comments' => ( (get_post_meta($post_id, 'ljxp_comments', true != 0) ) ? ( 2 - get_post_meta($post_id, 'ljxp_comments', true) ) : get_option('ljxp_comments') ),
 						'tag' => get_option('ljxp_tag'),
 						'more' => get_option('ljxp_more'),
 						'community' => stripslashes(get_option('ljxp_community')),
@@ -668,23 +667,23 @@ function ljxp_post($post_id) {
 																	// post from being show on top
 												'taglist'			=> ($options['tag'] != 0 ? $cat_string : ''),
 												),
-					'usejournal'		=> (!empty($community) ? $community : $options['user']),
+					'usejournal'		=> (!empty($options['community']) ? $options['community'] : $options['user']),
 					);
 	// Set the privacy level according to the settings
 	switch($options['privacy']) {
-	case "public":
-		$args['security'] = "public";
-		break;
-	case "private":
-		$args['security'] = "private";
-		break;
-	case "friends":
-		$args['security'] = "usemask";
-		$args['allowmask'] = 1;
-		break;
-	default :
-		$args['security'] = "public";
-		break;
+		case "public":
+			$args['security'] = 'public';
+			break;
+		case "private":
+			$args['security'] = 'private';
+			break;
+		case "friends":
+			$args['security'] = 'usemask';
+			$args['allowmask'] = 1;
+			break;
+		default :
+			$args['security'] = "public";
+			break;
 	}
 
 	// Assume this is a new post
@@ -876,16 +875,15 @@ function ljxp_save($post_id) {
 	}
 	if(isset($_POST['ljxp_comments'])) {
 		delete_post_meta($post_id, 'ljxp_comments');
-		if("0" != $_POST['ljxp_comments']) {
+		if($_POST['ljxp_comments'] !== 0) {
 			add_post_meta($post_id, 'ljxp_comments', $_POST['ljxp_comments']);
 		}
 	}
+
 	if(isset($_POST['ljxp_privacy'])) {
-		if($_POST['ljxp_privacy'] != 0) {
-			update_post_meta($post_id, 'ljxp_privacy', $_POST['ljxp_privacy']);
-		}
-		else{
 			delete_post_meta($post_id, 'ljxp_privacy');
+		if($_POST['ljxp_privacy'] !== 0) {
+			add_post_meta($post_id, 'ljxp_privacy', $_POST['ljxp_privacy']);
 		}
 	}
 }
@@ -902,6 +900,8 @@ function ljxp_post_all($repost_ids) {
 	}
 }
 
+
+
 add_action('admin_menu', 'ljxp_add_pages');
 if(get_option('ljxp_username') != "") {
 	add_action('publish_post', 'ljxp_post');
@@ -913,5 +913,4 @@ if(get_option('ljxp_username') != "") {
 	add_action('save_post', 'ljxp_save', 1);
 	add_action('edit_post', 'ljxp_save', 1);
 }
-
 ?>
