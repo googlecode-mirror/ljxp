@@ -10,3 +10,4 @@
   * less obnoxious default styling for the crosspost header/footer
   * new developer: Stephanie Leary
   * removed references to lj-xp.com, which is no longer active
+  * changed directory and file names to match versions available through wordpress.org.
