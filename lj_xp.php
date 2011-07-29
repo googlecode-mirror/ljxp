@@ -957,13 +957,13 @@ function ljxp_sidebar() {
 	<ul>
 		<?php $ljxp_crosspost = get_post_meta($post->ID, 'no_lj', true); //if (!isset($ljxp_crosspost)) $ljxp_crosspost = 1; ?>
 			<li><label class="selectit" for="ljxp_crosspost_go">
-				<input type="radio" <?php checked($ljxp_crosspost, 0); ?> value="1" name="ljxp_crosspost" id="ljxp_crosspost_go"/>
-				<?php _e('Crosspost', 'lj-xp'); ?>
+				<input type="radio" <?php checked($ljxp_crosspost, 1); ?> value="1" name="ljxp_crosspost" id="ljxp_crosspost_go"/>
+				<?php _e('Crosspost', 'lj-xp'); if ($ljxp_crosspost == 1) _e(' <em>(default)</em>', 'lj-xp'); ?>
 			</label></li>
 
 			<li><label class="selectit" for="ljxp_crosspost_nogo">
-				<input type="radio" <?php checked($ljxp_crosspost, 1); ?> value="0" name="ljxp_crosspost" id="ljxp_crosspost_nogo"/>
-				<?php _e('Do not crosspost', 'lj-xp'); ?>
+				<input type="radio" <?php checked($ljxp_crosspost, 0); ?> value="0" name="ljxp_crosspost" id="ljxp_crosspost_nogo"/>
+				<?php _e('Do not crosspost', 'lj-xp'); if ($ljxp_crosspost == 0) _e(' <em>(default)</em>', 'lj-xp'); ?>
 			</label></li>
 
 	</ul>
@@ -976,17 +976,13 @@ function ljxp_sidebar() {
 		//if (empty($ljxp_comments))
 		//	$ljxp_comments = get_option('ljxp_comments');
 		?>
-			<li><label class="selectit" for="ljxp_comments_default">
-				<input type="radio" <?php checked($ljxp_comments, 0); ?> value="0" name="ljxp_comments" id="ljxp_comments_default"/>
-				<?php _e('Default comments setting', 'lj-xp'); ?>
-			</label></li>
 			<li><label class="selectit" for="ljxp_comments_on">
 				<input type="radio" <?php checked($ljxp_comments, 1); ?> value="1" name="ljxp_comments" id="ljxp_comments_on"/>
-				<?php _e('Comments on', 'lj-xp'); ?>
+				<?php _e('Comments on', 'lj-xp'); if ($ljxp_comments == 1) _e(' <em>(default)</em>', 'lj-xp'); ?>
 			</label></li>
 			<li><label class="selectit" for="ljxp_comments_off">
 				<input type="radio" <?php checked($ljxp_comments, 2); ?> value="2" name="ljxp_comments" id="ljxp_comments_off"/>
-				<?php _e('Comments off', 'lj-xp'); ?>
+				<?php _e('Comments off', 'lj-xp'); if ($ljxp_comments == 2) _e(' <em>(default)</em>', 'lj-xp'); ?>
 			</label></li>
 
 		</ul>
@@ -999,21 +995,17 @@ function ljxp_sidebar() {
 			//if (empty($ljxp_privacy))
 			//	$ljxp_privacy = get_option('ljxp_privacy');
 			?>
-			<li><label class="selectit" for="ljxp_privacy_default">
-				<input type="radio" <?php checked($ljxp_privacy, 0); ?> value="0" name="ljxp_privacy" id="ljxp_privacy_default"/>
-				<?php _e('Default post privacy setting', 'lj-xp'); ?>
-			</label></li>
 			<li><label class="selectit" for="ljxp_privacy_public">
 				<input type="radio" <?php checked($ljxp_privacy, 'public'); ?> value="public" name="ljxp_privacy" id="ljxp_privacy_public"/>
-				<?php _e('Public post', 'lj-xp'); ?>
+				<?php _e('Public post', 'lj-xp'); if ($ljxp_privacy == 'public') _e(' <em>(default)</em>', 'lj-xp'); ?>
 			</label></li>
 			<li><label class="selectit" for="ljxp_privacy_private">
 				<input type="radio" <?php checked($ljxp_privacy, 'private'); ?> value="private" name="ljxp_privacy" id="ljxp_privacy_private"/>
-				<?php _e('Private post', 'lj-xp'); ?>
+				<?php _e('Private post', 'lj-xp'); if ($ljxp_privacy == 'private') _e(' <em>(default)</em>', 'lj-xp'); ?>
 			</label></li>
 			<li><label class="selectit" for="ljxp_privacy_friends">
 				<input type="radio" <?php checked($ljxp_privacy, 'friends'); ?> value="friends" name="ljxp_privacy" id="ljxp_privacy_friends"/>
-				<?php _e('Friends only', 'lj-xp'); ?>
+				<?php _e('Friends only', 'lj-xp'); if ($ljxp_privacy == 'friends') _e(' <em>(default)</em>', 'lj-xp'); ?>
 			</label></li>
 			
 			</ul>
@@ -1036,11 +1028,10 @@ function ljxp_sidebar() {
 		<p class="ljxp-cut-text">
 		<?php 
 		$cuttext = get_post_meta($post->ID, 'ljxp_cut_text', true);
-		//if (empty($cuttext))
-		//	$cuttext = get_option('ljxp_cut_text');
+		$defaultcuttext = get_option('ljxp_cut_text');
 		 ?>
 			<label for="ljxp_cut_text">
-				<?php _e('Link text for LJ cut tag (if &lt;!--more--&gt; tag is used)', 'lj-xp'); ?>
+				<?php _e('Link text for LJ cut tag (if &lt;!--more--&gt; tag is used)', 'lj-xp'); printf(__('Default: %s', 'lj-xp'), $defaultcuttext); ?>
 				<input type="text" value="<?php esc_attr_e($cuttext); ?>" name="ljxp_cut_text" id="ljxp_cut_text" />
 			</label>
 		</p>
