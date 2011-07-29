@@ -1,3 +1,4 @@
+#labels Featured
 = 2.1 =
 
   * send error back to the post edit screen when LJ is down rather than using wp_die(), which stops all other plugins from working
