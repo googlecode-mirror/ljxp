@@ -3,7 +3,7 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://code.google.com/p/ljxp/
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well.
-Version: 2.1
+Version: 2.1.1
 Author: Arseniy Ivanov, Evan Broder, Corey DeGrandchamp, Stephanie Leary
 Author URI: http://code.google.com/p/ljxp/
 */
@@ -54,6 +54,7 @@ function ljxp_display_options() {
 				'ljxp_password'		=> '',
 				'ljxp_custom_name_on'	=> false,
 				'ljxp_custom_name'	=> '',
+				'ljxp_crosspost'		=> 1,
 				'ljxp_privacy'		=> 'public',
 				'ljxp_comments'		=> 0,
 				'ljxp_tag'		=> '1',
@@ -101,6 +102,7 @@ function ljxp_display_options() {
 								'ljxp_username'			=> 'username',
 								'ljxp_custom_name_on'	=> 'custom_name_on',
 								'ljxp_custom_name'		=> 'custom_name',
+								'ljxp_crosspost'			=> 'ljxp_crosspost',
 								'ljxp_privacy'			=> 'privacy',
 								'ljxp_comments'			=> 'comments',
 								'ljxp_tag'				=> 'tag',
@@ -253,8 +255,6 @@ function ljxp_display_options() {
 	}
 
 	// And, finally, output the form
-	// May add some Javascript to disable the custom_name field later - don't
-	// feel like it now, though
 ?>
 <div class="wrap">
 	<form method="post" action="<?php echo $_SERVER['REQUEST_URI']; ?>">
@@ -292,6 +292,25 @@ function ljxp_display_options() {
 			</tr>
 		</table>
 		<fieldset class="options">
+			<legend><h3><?php _e('Crosspost Default', 'lj-xp'); ?></h3></legend>
+			<table width="100%" cellspacing="2" cellpadding="5" class="form-table ui-tabs-panel">
+				<tr valign="top">
+					<th width="33%" scope="row"><?php _e('If no crosspost setting is specified for an individual post:', 'lj-xp'); ?></th>
+					<td>
+					<label>
+						<input name="ljxp_crosspost" type="radio" value="1" <?php checked($options['ljxp_crosspost'], 1); ?>/>
+						<?php _e('Crosspost', 'lj-xp'); ?>
+					</label>
+					<br />
+					<label>
+						<input name="ljxp_crosspost" type="radio" value="0" <?php checked($options['ljxp_crosspost'], 0); ?>/>
+						<?php _e('Do not crosspost', 'lj-xp'); ?>
+					</label>
+					<br />
+				</tr>
+			</table>
+		</fieldset>
+		<fieldset class="options">
 			<legend><h3><?php _e('Blog Header', 'lj-xp'); ?></h3></legend>
 			<table width="100%" cellspacing="2" cellpadding="5" class="form-table ui-tabs-panel">
 				<tr valign="top">
@@ -311,17 +330,19 @@ function ljxp_display_options() {
 					<th scope="row"><?php _e('Set blog name for crosspost header/footer', 'lj-xp'); ?></th>
 					<td>
 						<label>
-							<input name="custom_name_on" type="radio" value="0" <?php checked($options['ljxp_custom_name_on'], 0); ?>/>
+							<input name="custom_name_on" type="radio" value="0" <?php checked($options['ljxp_custom_name_on'], 0); ?>
+							onclick="javascript: jQuery('#custom_name_row').hide('fast');"/>
 							<?php printf(__('Use the title of your blog (%s)', 'lj-xp'), get_option('blogname')); ?>
 						</label>
 						<br />
 						<label>
-							<input name="custom_name_on" type="radio" value="1" <?php checked($options['ljxp_custom_name_on'], 1); ?>/>
+							<input name="custom_name_on" type="radio" value="1" <?php checked($options['ljxp_custom_name_on'], 1); ?> 
+							onclick="javascript: jQuery('#custom_name_row').show('fast');"/>
 							<?php _e('Use a custom title', 'lj-xp'); ?>
 						</label>
 					</td>
 				</tr>
-				<tr valign="top">
+				<tr valign="top" id="custom_name_row" <?php if ($options['ljxp_custom_name_on']) echo 'style="display: table-row"'; else echo 'style="display: none"'; ?>>
 					<th scope="row"><?php _e('Custom blog title', 'lj-xp'); ?></th>
 					<td><input name="custom_name" type="text" id="custom_name" value="<?php print htmlentities($options['ljxp_custom_name'], ENT_COMPAT, 'UTF-8'); ?>" size="40" /><br />
 					<span class="description"><?php
@@ -357,6 +378,8 @@ function ljxp_display_options() {
 						<dt>[comments_count]</dt>
 						<dd><?php _e('An image containing a comments counter', 'lj-xp'); ?></dd>
 
+						<dt>[author]</dt>
+						<dd><?php _e('The display name of the post\'s author', 'lj-xp'); ?></dd>
 					</dl>
 					</td>
 			</table>
@@ -480,13 +503,13 @@ function ljxp_display_options() {
 			<table width="100%" cellspacing="2" cellpadding="5" class="form-table ui-tabs-panel">
 				<tr valign="top">
 					<th width="33%" scope="row"><?php _e('Select which categories should be crossposted', 'lj-xp'); ?></th>
-					<td><ul id="category-children">
-					<?php
-					( function_exists('write_nested_categories') ?
-						write_nested_categories(ljxp_cat_select(get_nested_categories(), $options['ljxp_skip_cats']))
-						: wp_category_checklist(false, false, array_diff(get_all_category_ids(), (array)$options['ljxp_skip_cats']))
-					);
-					?></ul>
+					<td>
+						<ul id="category-children">
+							<?php
+							$selected = array_diff(get_all_category_ids(), $options['ljxp_skip_cats']);
+							wp_category_checklist(0, 0, $selected, false, 0, false);
+							?>
+						</ul>
 					<span class="description">
 					<?php _e('Any post that has <em>at least one</em> of the above categories selected will be crossposted.'); ?>
 					</span>
@@ -502,28 +525,18 @@ function ljxp_display_options() {
 					<td>
 					<?php
 						$userpics = $options['ljxp_userpics'];
-
 						if (!$userpics)
-						{
 							_e('<p>No userpics have been downloaded, only the default will be available.</p>');
-						}
 						else
-						{
-							_e(implode(', ', $userpics));
-						}
+							echo implode(', ', $userpics);
 					?>
 					<br/>
 					<br/>
 					<input type="submit" name="update_userpics" value="<?php _e('Update Userpics', 'lj-xp'); ?>" class="button-secondary" />
 
-					<?php
-						if (count($options['ljxp_userpics'])) {
-					?>
-						<input type="submit" name="clear_userpics" value="<?php _e('Clear ' . count($options['ljxp_userpics']). ' Userpics', 'lj-xp'); ?>" class="button-secondary" />
-
-					<?php
-						}
-					?>
+					<?php if (count($options['ljxp_userpics'])) { ?>
+						<input type="submit" name="clear_userpics" value="<?php printf(__('Clear %d Userpics', 'lj-xp'), count($options['ljxp_userpics'])); ?>" class="button-secondary" />
+					<?php } ?>
 					</td>
 				</tr>
 			</table>
@@ -537,21 +550,8 @@ function ljxp_display_options() {
 <?php
 }
 
-function ljxp_cat_select($cats, $selected_cats) {
-	foreach((array)$cats as $key=>$cat) {
-		$cats[$key]['checked'] = !in_array($cat['cat_ID'], $selected_cats);
-		$cats[$key]['children'] = ljxp_cat_select($cat['children'], $selected_cats);
-	}
-	return $cats;
-}
-
 function ljxp_post($post_id) {
 	global $wpdb, $tags, $cats; // tags/cats are going to be filtered thru an external function
-
-	// If the post was manually set to not be crossposted, give up now
-	if(get_post_meta($post_id, 'no_lj', true)) {
-		return $post_id;
-	}
 
 	// Get the relevent info out of the database
 	$options = array(
@@ -560,6 +560,7 @@ function ljxp_post($post_id) {
 						'pass' => get_option('ljxp_password'),
 						'custom_name_on' => get_option('ljxp_custom_name_on'),
 						'custom_name' => stripslashes(get_option('ljxp_custom_name')),
+						'crosspost' => stripslashes(get_option('ljxp_crosspost')),
 						'privacy' => ( (get_post_meta($post_id, 'ljxp_privacy', true) != 0) ?
 									get_post_meta($post_id, 'ljxp_privacy', true) :
 										get_option('ljxp_privacy') ),
@@ -574,8 +575,13 @@ function ljxp_post($post_id) {
 						'userpic' => get_post_meta($post_id, 'ljxp_userpic', true),
 						'cut_text' => get_post_meta($post_id, 'ljxp_cut_text', true),
 	);
-
-
+	if (empty($options['cut_text']))
+		$options['cut_text'] = __('Read the rest of this entry &raquo;', 'lj-xp');
+	
+	// If the post was manually set to not be crossposted, or nothing was set and the default is not to crosspost, give up now
+	if(get_post_meta($post_id, 'no_lj', true) || 0 == $options['crosspost']) {
+		return $post_id;
+	}
 
 	// If the post shows up in the forbidden category list and it has been
 	// crossposted before (so the forbidden category list must have changed),
@@ -689,7 +695,12 @@ function ljxp_post($post_id) {
 	else {
 		$postHeader = $options['custom_header'];
 
-
+		// find [author]
+		$thepost = get_post($postid);
+		$userid = $thepost->post_author;
+		$author = get_userdata( $userid );
+		$author = $author->display_name;
+		
 		// pre-post formatting for tags and categories
 		$htags = '';
 		$hcats = '';
@@ -700,8 +711,8 @@ function ljxp_post($post_id) {
 		$htags = implode(', ', (array)$htags);
 		$hcats = implode(', ', (array)$hcats);
 
-		$find = array('[blog_name]', '[blog_link]', '[permalink]', '[comments_link]', '[comments_count]', '[tags]', '[categories]');
-		$replace = array($blogName, get_option('home'), get_permalink($post_id), get_permalink($post_id).'#comments', lj_comments($post_id), $htags, $hcats);
+		$find = array('[blog_name]', '[blog_link]', '[permalink]', '[comments_link]', '[comments_count]', '[tags]', '[categories]', '[author]');
+		$replace = array($blogName, get_option('home'), get_permalink($post_id), get_permalink($post_id).'#comments', lj_comments($post_id), $htags, $hcats, $author);
 		$postHeader = str_replace($find, $replace, $postHeader);
 	}
 
@@ -713,27 +724,34 @@ function ljxp_post($post_id) {
 	if(!$post->post_password) {
 		// and if there's no <!--more--> tag, we can spit it out and go on our
 		// merry way
-		if(strpos($post->post_content, "<!--more-->") === false) {
-			$the_content = $post->post_content;
+		$the_content = $post->post_content;
+		$the_content = apply_filters('ljxp_pre_process_post', $the_content);
+		
+		if(strpos($the_content, "<!--more") === false) {
 			$the_content = str_replace('[gallery', '[gallery id="'.$post->ID.'" ', $the_content); // fix gallery shortcodes
 			$the_content = apply_filters('the_content', $the_content);
 			$the_content = str_replace(']]>', ']]&gt;', $the_content);
 			$the_event .= $the_content;
 		}
 		else {
-			$content = explode("<!--more-->", $post->post_content, 2);
+			$content = explode("<!--more", $the_content, 2);
+			$split_content = explode("-->", $content[1], 2);
+			$content[1] = $split_content[1];
+			$more_text = trim( $split_content[0] );
+			if( empty($more_text) )  
+				$more_text = $options['cut_text'];
 			$the_event .= apply_filters('the_content', $content[0]);
 			switch($options['more']) {
-			case "copy":
-				$the_event .= apply_filters('the_content', $content[1]);
-				break;
-			case "link":
-				$the_event .= sprintf('<p><a href="%s#more-%s">', get_permalink($post_id), $post_id) .
-					$options['cut_text'] . '</a></p>';
-				break;
-			case "lj-cut":
-				$the_event .= '<lj-cut text="'.$options['cut_text'].'">'.apply_filters('the_content', $content[1]).'</lj-cut>';
-				break;
+				case "copy":
+					$the_event .= apply_filters('the_content', $content[1]);
+					break;
+				case "link":
+					$the_event .= sprintf('<p><a href="%s#more-%s">', get_permalink($post_id), $post_id) .
+						$more_text . '</a></p>';
+					break;
+				case "lj-cut":
+					$the_event .= '<lj-cut text="'.$more_text.'">'.apply_filters('the_content', $content[1]).'</lj-cut>';
+					break;
 			}
 		}
 	}
@@ -1104,7 +1122,7 @@ function ljxp_css() { ?>
 function ljxp_settings_css() { ?>
 	<style type="text/css">
 	table.editform th { text-align: left; }
-	ul#category-children { list-style: none; }
+	ul#category-children { list-style: none; height: 15em; width: 20em; overflow-y: scroll; border: 1px solid #dfdfdf; padding: 0 1em; background: #fff; border-radius: 4px; -moz-border-radius: 4px; -webkit-border-radius: 4px; }
  	ul.children { margin-left: 1.5em; }
 	</style>
 <?php
