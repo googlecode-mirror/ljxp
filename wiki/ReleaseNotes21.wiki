@@ -1,0 +1,11 @@
+= 2.1 =
+* send error back to the post edit screen when LJ is down rather than using wp_die(), which stops all other plugins from working
+* support userpics
+* support cut text
+* switch to new meta box format so you can collapse the LJ box or move it around the post edit screen
+* fix a problem with gallery image IDs that would cause the wrong images to be shown when the [gallery] shortcode was crossposted
+* options page cleanup
+* get rid of has_cap deprecated argument notice
+* less obnoxious default styling for the crosspost header/footer
+* new developer: Stephanie Leary
+* removed references to lj-xp.com, which is no longer active
