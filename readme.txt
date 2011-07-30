@@ -38,9 +38,10 @@ to your WP blog instead!
 * Fix for `<!--more-->` tags containing text (<a href="http://code.google.com/p/ljxp/issues/detail?id=76">#76</a>)
 * Added a filter, `ljxp_pre_process_post`, applied to the post content before it's crossposted (<a href="http://code.google.com/p/ljxp/issues/detail?id=120">#120</a>)
 * Added option to not crosspost by default (<a href="http://code.google.com/p/ljxp/issues/detail?id=67">#67</a>)
-* Added [author] tag for header/footer (<a href="http://code.google.com/p/ljxp/issues/detail?id=34">#34</a>)
 * Added option to crosspost the excerpt instead of the full text (<a href="http://code.google.com/p/ljxp/issues/detail?id=111">#111</a>)
-* Settings API and general settings cleanup. Now using two options instead of thirteen.
+* Added [author] tag for header/footer (<a href="http://code.google.com/p/ljxp/issues/detail?id=34">#34</a>)
+* Settings API! Much better security.
+* General settings cleanup. Now using two settings instead of thirteen, and removing settings on plugin uninstall.
 * More improvements to the error handling
 = 2.1 =
 * send error back to the post edit screen when LJ is down (transport/socket errors) rather than using wp_die(), which stops all other plugins from working
