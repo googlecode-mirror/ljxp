@@ -5,7 +5,7 @@ function ljxp_get_options() {
 			'host'				=> 'www.livejournal.com',
 			'username'			=> '',
 			'password'			=> '',
-			'custom_name_on'	=> false,
+			'custom_name_on'	=> 0,
 			'custom_name'		=> '',
 			'crosspost'			=> 1,
 			'content'			=> 'full',
@@ -46,15 +46,17 @@ function ljxp_get_options() {
 					'ljxp_userpics',
 					'ljxp_cut_text',
 					);
+		$old_options = array();
 		foreach ($old_option_list as $_opt ) {
-			$newkey = str_replace('ljxp_', '', $_opt);
+			$newkey = str_replace('ljxp_', '', (string)$_opt);
 			$old_options[$newkey] = get_option($_opt);
 			delete_option($_opt);
 		} 
 		if (is_array($old_options))
-			return array_merge( $old_options, $options );
+			$options = array_merge( $old_options, $options );
 	}
 	
+	// still need to get the defaults for the new settings, so we'll merge again
 	return array_merge( $defaults, $options );
 }
 
@@ -198,6 +200,7 @@ function ljxp_display_options() {
 		$options = ljxp_get_options();
 		?>
 		<h2><?php _e('LiveJournal Crossposter Options', 'lj-xp'); ?></h2>
+		<!-- <pre><?php //print_r($options); ?></pre>  -->
 		<table class="form-table ui-tabs-panel">
 			<tr valign="top">
 				<th scope="row"><?php _e('LiveJournal-compliant host:', 'lj-xp') ?></th>

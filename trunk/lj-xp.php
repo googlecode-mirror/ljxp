@@ -3,7 +3,7 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://code.google.com/p/ljxp/
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well.
-Version: 2.1.1
+Version: 2.1.1b
 Author: Arseniy Ivanov, Evan Broder, Corey DeGrandchamp, Stephanie Leary
 Author URI: http://code.google.com/p/ljxp/
 */
@@ -42,7 +42,7 @@ function ljxp_remove_options() {
 }
 register_uninstall_hook( __FILE__, 'ljxp_remove_options' );
 // for testing only
-// register_deactivation_hook( __FILE__, 'ljxp_remove_options' );
+register_deactivation_hook( __FILE__, 'ljxp_remove_options' );
 
 function ljxp_post($post_id) {
 	global $wpdb, $tags, $cats; // tags/cats are going to be filtered thru an external function
@@ -453,9 +453,9 @@ function ljxp_meta_box() {
 }
 
 function ljxp_sidebar() {
-	global $post, $wp_version;
+	global $post;
 	$options = ljxp_get_options();
-	$userpics = $option['userpics'];
+	$userpics = $options['userpics'];
 	if (is_array($userpics)) sort($userpics);
 ?>
 	<div class="ljxp-radio-column">
@@ -511,7 +511,7 @@ function ljxp_sidebar() {
 			</ul>
 		</div>
 		
-			<?php if ($userpics) : ?>
+			<?php if (!empty($userpics)) : ?>
 		<p class="ljxp-userpics">
 					<label for="ljxp_userpic"><?php _e('Choose userpic: ', 'lj-xp'); ?></label>
 					<select name="ljxp_userpic">
@@ -532,7 +532,7 @@ function ljxp_sidebar() {
 			<label for="ljxp_cut_text">
 				<?php _e('Link text for LJ cut tag (if &lt;!--more--&gt; tag is used)', 'lj-xp'); ?>
 				<input type="text" value="<?php esc_attr_e($cuttext); ?>" name="ljxp_cut_text" id="ljxp_cut_text" />
-				<p><span class="description"><?php printf(__('Default: %s', 'lj-xp'), $options['ljxp_cut_text']); ?></span></p>
+				<p><span class="description"><?php printf(__('Default: %s', 'lj-xp'), $options['cut_text']); ?></span></p>
 			</label>
 		</p>
 		<?php
@@ -632,9 +632,10 @@ function ljxp_settings_css() { ?>
 }
 
 add_action('admin_menu', 'ljxp_add_pages');
-$option = get_option('ljxp_username');
+$option = get_option('ljxp');
 if (!empty($option)) {
-	add_action('admin_init', 'ljxp_meta_box');
+	add_action('admin_init', 'ljxp_meta_box', 1);
+	add_action('add_meta_boxes', 'ljxp_meta_box');
 	add_action('admin_head-post-new.php', 'ljxp_css');
 	add_action('admin_head-post.php', 'ljxp_css');
 	add_action('publish_post', 'ljxp_post', 50);
