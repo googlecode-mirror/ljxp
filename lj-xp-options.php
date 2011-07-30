@@ -32,6 +32,7 @@ function ljxp_get_options() {
 					'ljxp_host',
 					'ljxp_username',
 					'ljxp_password',
+					'ljxp_crosspost',
 					'ljxp_custom_name_on',
 					'ljxp_custom_name',
 					'ljxp_privacy',
@@ -65,15 +66,14 @@ function ljxp_validate_options($input) {
 	$msg = array();
 	$linkmsg = '';
 	$msgtype = 'error';
-		
-	// trim
-	if (!empty($input['host']))			$input['host'] = 			trim($input['host']);
-	if (!empty($input['username']))		$input['username'] = 		trim($input['username']);
-	if (!empty($input['custom_name']))	$input['custom_name'] = 	trim($input['custom_name']);
-	if (!empty($input['community']))	$input['community'] = 		trim($input['community']);
-	if (!empty($input['custom_header'])) $input['custom_header'] = 	trim($input['custom_header']);
-		
+	$options = ljxp_get_options();
 	
+	// save password no matter what
+	if (!isset($input['password']) || empty($input['password']))
+		$input['password'] = $options['password']; // preserve!
+	else
+		$input['password'] = md5($input['password']);
+		
 	// If we're handling a submission, save the data
 	if(isset($input['update_ljxp_options']) || isset($input['crosspost_all'])) {
 		// Grab a list of all entries that have been crossposted
@@ -85,28 +85,26 @@ function ljxp_validate_options($input) {
 		// Set the update flag
 		$need_update = 0;
 
-		// compare to old options
-		$options = ljxp_get_options();
 		foreach ($input as $key => $val) {
 			if ($val != $options[$key]) { // the option has changed
 				
 				// And then the custom actions
-				switch ($key) { // this is kinda harsh, I guess
+				switch ($key) { // this is kinda harsh, I guess // SCL: yeah, let's not
 					case 'post' :
 					case 'username' :
 					case 'comments' :
 					case 'community' :
-							ljxp_delete_all($repost_ids);
+						//	ljxp_delete_all($repost_ids);
 					case 'custom_name_on' :
 					case 'privacy' :
 					case 'tag' :
 					case 'more' :
 					case 'custom_header' :
-							$need_update = 1;
+							//$need_update = 1;
 						break;
 					case 'custom_name' :
 							if (!empty($options['custom_name'])) {
-								$need_update = 1;
+								//$need_update = 1;
 							}
 						break;
 					default:
@@ -116,22 +114,19 @@ function ljxp_validate_options($input) {
 			}
 		}
 
-		if (!isset($input['post_category'])) $input['post_category'] = array();
-		sort($options['skip_cats']);
-		$new_skip_cats = array_diff(get_all_category_ids(), $input['post_category']);
-		sort($new_skip_cats);
-		if($options['skip_cats'] != $new_skip_cats) {
-			$input['skip_cats'] = $new_skip_cats;
-		}
+		$input['skip_cats'] = array_diff(get_all_category_ids(), $input['post_category']);
 
-		unset($new_skip_cats);
+		//unset($new_skip_cats);
 		unset($input['post_category']);
 
-		if (!empty($input['password'])) {
-			$input['password'] = md5($input['password']);
-		}
-
-		if ($need_update && isset($input['update_lj_options'])) {
+		// trim
+		if (!empty($input['host']))			$input['host'] = 			trim($input['host']);
+		if (!empty($input['username']))		$input['username'] = 		trim($input['username']);
+		if (!empty($input['custom_name']))	$input['custom_name'] = 	trim($input['custom_name']);
+		if (!empty($input['community']))	$input['community'] = 		trim($input['community']);
+		if (!empty($input['custom_header'])) $input['custom_header'] = 	trim($input['custom_header']);
+		
+		if ($need_update && isset($input['update_ljxp_options'])) {
 			ljxp_post_all($repost_ids);
 		}
 
@@ -148,16 +143,17 @@ function ljxp_validate_options($input) {
 		$input['userpics'] = array();
 		$msg[] .= __('Userpic list cleared.', 'lj-xp');
 		$msgtype = 'updated';
+		unset($input['clear_userpics']);
 	}
-	unset($input['clear_userpics']);
-
-	if (isset($input['update_userpics'])) {
+	elseif (isset($input['update_userpics'])) {
 		$pics = ljxp_update_userpics($input['username']);
 		$input['userpics'] = $pics['userpics'];
 		$msg[] .= $pics['msg'];
 		$msgtype = $pics['msgtype'];
+		unset($input['update_userpics']);
 	}
-	unset($input['update_userpics']);
+	else
+		$input['userpics'] = $options['userpics']; // preserve
 		
 	// Send custom updated message
 	$msg = implode('<br />', $msg);
@@ -200,7 +196,7 @@ function ljxp_display_options() {
 		$options = ljxp_get_options();
 		?>
 		<h2><?php _e('LiveJournal Crossposter Options', 'lj-xp'); ?></h2>
-		<!-- <pre><?php //print_r($options); ?></pre>  -->
+		<!-- <pre><?php //print_r($options); ?></pre> -->  
 		<table class="form-table ui-tabs-panel">
 			<tr valign="top">
 				<th scope="row"><?php _e('LiveJournal-compliant host:', 'lj-xp') ?></th>
@@ -218,7 +214,7 @@ function ljxp_display_options() {
 			</tr>
 			<tr valign="top">
 				<th scope="row"><?php _e('LJ Password', 'lj-xp'); ?></th>
-				<td><input name="ljxp[password]" type="password" id="password" value="" size="40" /><br />
+				<td><input name="ljxp[password]" type="password" id="password" size="40" /><br />
 				<span  class="description"><?php
 				_e('Only enter a value if you wish to change the stored password. Leaving this field blank will not erase any passwords already stored.', 'lj-xp');
 				?></span>
@@ -459,7 +455,10 @@ function ljxp_display_options() {
 					<th scope="row"><?php _e('Select which categories should be crossposted', 'lj-xp'); ?></th>
 					<td>
 						<ul id="category-children">
+							<li><label class="selectit"><input type="checkbox" class="checkall"> 
+								<em><?php _e("Check all", 'lj-xp'); ?></em></label></li>
 							<?php
+							if (!is_array($options['skip_cats'])) $options['skip_cats'] = (array)$options['skip_cats'];
 							$selected = array_diff(get_all_category_ids(), $options['skip_cats']);
 							wp_category_checklist(0, 0, $selected, false, 0, false);
 							?>
@@ -479,7 +478,7 @@ function ljxp_display_options() {
 					<td>
 					<?php
 						$userpics = $options['userpics'];
-						if (!$userpics)
+						if (empty($userpics))
 							_e('<p>No userpics have been downloaded, only the default will be available.</p>');
 						else
 							echo implode(', ', $userpics);
@@ -500,6 +499,15 @@ function ljxp_display_options() {
 			<input type="submit" name="ljxp[update_ljxp_options]" value="<?php esc_attr_e('Update Options'); ?>" class="button-primary" />
 		</p>
 	</form>
+	<script type="text/javascript">
+	jQuery(document).ready(function($){
+		$(function () { // this line makes sure this code runs on page load
+			$('.checkall').click(function () {
+				$(this).parents('fieldset:eq(0)').find(':checkbox').attr('checked', this.checked);
+			});
+		});
+	});
+	</script>
 </div>
 <?php
 }

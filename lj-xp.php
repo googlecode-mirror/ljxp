@@ -55,7 +55,7 @@ function ljxp_post($post_id) {
 	if (isset($comments) && $comments != 0) $options['comments'] = $comments;
 
 	$options['copy_cats'] = array_diff(get_all_category_ids(), $options['skip_cats']);
-
+	//$options['copy_cats'] = $options['skip_cats'];
 		
 	// If the post was manually set to not be crossposted, or nothing was set and the default is not to crosspost, give up now
 	if (0 == $options['crosspost'] || get_post_meta($post_id, 'no_lj', true)) {
@@ -67,7 +67,8 @@ function ljxp_post($post_id) {
 	// delete the post. Otherwise, just give up now
 	$do_crosspost = 0;
 
-	foreach(wp_get_post_categories($post_id) as $cat) {
+	$postcats = wp_get_post_categories($post_id);
+	foreach($postcats as $cat) {
 		if(in_array($cat, $options['copy_cats'])) {
 			$do_crosspost = 1;
 			break; // decision made and cannot be altered, fly on
@@ -200,7 +201,7 @@ function ljxp_post($post_id) {
 			$the_event = apply_filters('the_excerpt', $post->post_excerpt);
 		else {
 			// and if there's no <!--more--> tag, we can spit it out and go on our merry way
-			// after we fix [gallery] IDs
+			// after we fix [gallery] IDs, which must happen before 'the_content' filters
 			$the_content = $post->post_content;
 			$the_content = ljxp_fix_galleries($the_content);
 			$the_content = apply_filters('ljxp_pre_process_post', $the_content);
@@ -216,7 +217,7 @@ function ljxp_post($post_id) {
 				if( empty($more_text) )  
 					$more_text = $options['cut_text'];
 				$the_event .= apply_filters('the_content', $content[0]);
-				switch($options['more']) {
+				switch ($options['more']) {
 					case "copy":
 						$the_event .= apply_filters('the_content', $content[1]);
 						break;
@@ -248,10 +249,10 @@ function ljxp_post($post_id) {
 	// Get a timestamp for retrieving dates later
 	$date = strtotime($post->post_date);
 
-	$args = array('username'			=> $options['user'],
+	$args = array('username'			=> $options['username'],
 					'auth_method'		=> 'challenge',
 					'auth_challenge'	=> $challenge,
-					'auth_response'		=> md5($challenge . $options['pass']),	// By spec, auth_response is md5(challenge + md5(pass))
+					'auth_response'		=> md5($challenge . $options['password']),	// By spec, auth_response is md5(challenge + md5(pass))
 					'ver'				=> '1',		// Receive UTF-8 instead of ISO-8859-1
 					'event'				=> $the_event,
 					'subject'			=> apply_filters('the_title', $post->post_title),
@@ -267,7 +268,7 @@ function ljxp_post($post_id) {
 												'taglist'			=> ($options['tag'] != 0 ? $cat_string : ''),
 												'picture_keyword'		=> "",
 												),
-					'usejournal'		=> (!empty($options['community']) ? $options['community'] : $options['user']),
+					'usejournal'		=> (!empty($options['community']) ? $options['community'] : $options['username']),
 					);
 
 	// Set the userpic, if the user has one selected
@@ -354,10 +355,10 @@ function ljxp_delete($post_id) {
 	// entry. Really rather klunky way of doing things, but not my code!
 	$args = array(
 
-				'username' => $options['user'],
+				'username' => $options['username'],
 				'auth_method' => 'challenge',
 				'auth_challenge' => $challenge,
-				'auth_response' => md5($challenge . $options['pass']),
+				'auth_response' => md5($challenge . $options['password']),
 				'itemid' => $ljxp_post_id,
 				'event' => "",
 				'subject' => "Delete this entry",
