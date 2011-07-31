@@ -75,66 +75,34 @@ function ljxp_validate_options($input) {
 		$input['password'] = md5($input['password']);
 		
 	// If we're handling a submission, save the data
-	if(isset($input['update_ljxp_options']) || isset($input['crosspost_all'])) {
-		// Grab a list of all entries that have been crossposted
-		$beenposted = get_posts(array('meta_key' => 'ljID', 'post_type' => 'any', 'post_status' => 'any', 'numberposts' => '-1'));
-		foreach ($beenposted as $post) {
-			$repost_ids[] = $post->ID;
-		}
+	if(isset($input['update_ljxp_options']) || isset($input['crosspost_all']) || isset($input['delete_all'])) {
 		
-		// Set the update flag
-		$need_update = 0;
-
-		foreach ($input as $key => $val) {
-			if ($val != $options[$key]) { // the option has changed
-				
-				// And then the custom actions
-				switch ($key) { // this is kinda harsh, I guess // SCL: yeah, let's not
-					case 'post' :
-					case 'username' :
-					case 'comments' :
-					case 'community' :
-						//	ljxp_delete_all($repost_ids);
-					case 'custom_name_on' :
-					case 'privacy' :
-					case 'tag' :
-					case 'more' :
-					case 'custom_header' :
-							//$need_update = 1;
-						break;
-					case 'custom_name' :
-							if (!empty($options['custom_name'])) {
-								//$need_update = 1;
-							}
-						break;
-					default:
-							continue;
-						break;
-				}
+		if (isset($input['delete_all'])) {
+			// If we need to delete all, grab a list of all entries that have been crossposted
+			$beenposted = get_posts(array('meta_key' => 'ljID', 'post_type' => 'any', 'post_status' => 'any', 'numberposts' => '-1'));
+			foreach ($beenposted as $post) {
+				$repost_ids[] = $post->ID;
 			}
+			$msg[] .= ljxp_delete_all($repost_ids);
 		}
 
 		$input['skip_cats'] = array_diff(get_all_category_ids(), $input['post_category']);
 
-		//unset($new_skip_cats);
 		unset($input['post_category']);
 
-		// trim
+		// trim and stripslash
 		if (!empty($input['host']))			$input['host'] = 			trim($input['host']);
 		if (!empty($input['username']))		$input['username'] = 		trim($input['username']);
-		if (!empty($input['custom_name']))	$input['custom_name'] = 	trim($input['custom_name']);
 		if (!empty($input['community']))	$input['community'] = 		trim($input['community']);
-		if (!empty($input['custom_header'])) $input['custom_header'] = 	trim($input['custom_header']);
-		
-		if ($need_update && isset($input['update_ljxp_options'])) {
-			ljxp_post_all($repost_ids);
-		}
+		if (!empty($input['custom_name']))	$input['custom_name'] = 	trim(stripslashes($input['custom_name']));
+		if (!empty($input['custom_header'])) $input['custom_header'] = 	trim(stripslashes($input['custom_header']));
 
 		if(isset($input['crosspost_all'])) {
-			ljxp_post_all();
+			$msg[] .= ljxp_post_all();
 		}
 		
 	} // if updated
+	unset($input['delete_all']);
 	unset($input['crosspost_all']);
 	unset($input['update_ljxp_options']);
 	
@@ -196,7 +164,7 @@ function ljxp_display_options() {
 		$options = ljxp_get_options();
 		?>
 		<h2><?php _e('LiveJournal Crossposter Options', 'lj-xp'); ?></h2>
-		<!-- <pre><?php //print_r($options); ?></pre> -->  
+		<!-- 	<pre><?php //print_r($options); ?></pre>   -->
 		<table class="form-table ui-tabs-panel">
 			<tr valign="top">
 				<th scope="row"><?php _e('LiveJournal-compliant host:', 'lj-xp') ?></th>
@@ -494,8 +462,25 @@ function ljxp_display_options() {
 				</tr>
 			</table>
 		</fieldset>
+		<fieldset class="options">
+			<legend><h3><?php _e('Crosspost or delete all entries', 'lj-xp'); ?></h3></legend>
+			<table class="form-table ui-tabs-panel">
+				<tr valign="top">
+					<th scope="row"> </th>
+					<td>
+					<?php printf(__('If you have changed your username or community, you might want to crosspost all your entries, or delete all the old ones from your journal. These buttons are hidden so you don\'t press them by accident. <a href="%s" %s>Show the buttons.</a>', 'lj-xp'), '#scary-buttons', 'onclick="javascript: jQuery(\'#scary-buttons\').show(\'fast\');"'); ?>
+					</td>
+				</tr>
+				<tr valign="top" id="scary-buttons">
+					<th scope="row"> </th>
+					<td>
+					<input type="submit" name="ljxp[crosspost_all]" id="crosspost_all" value="<?php esc_attr_e('Update options and crosspost all WordPress entries', 'lj-xp'); ?>" class="button-secondary" />
+					<input type="submit" name="ljxp[delete_all]" id="delete_all" value="<?php esc_attr_e('Update options and delete all journal entries', 'lj-xp'); ?>" class="button-secondary" />
+					</td>
+				</tr>
+			</table>
+		</fieldset>
 		<p class="submit">
-			<input type="submit" name="ljxp[crosspost_all]" value="<?php esc_attr_e('Update Options and Crosspost All WordPress entries', 'lj-xp'); ?>" />
 			<input type="submit" name="ljxp[update_ljxp_options]" value="<?php esc_attr_e('Update Options'); ?>" class="button-primary" />
 		</p>
 	</form>
@@ -573,5 +558,13 @@ function ljxp_update_userpics($username) {
 	}
 	$msg = implode('<br />', $msg);
 	return array('userpics' => $new_userpics, 'msg' => $msg, 'msgtype' => $msgtype);
+}
+
+// pre-3.1 compatibility
+if (!function_exists('esc_textarea')) {
+	function esc_textarea( $text ) {
+	     $safe_text = htmlspecialchars( $text, ENT_QUOTES );
+	     return apply_filters( 'esc_textarea', $safe_text, $text );
+	}
 }
 ?>

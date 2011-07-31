@@ -3,15 +3,14 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://code.google.com/p/ljxp/
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well.
-Version: 2.1.1b
+Version: 2.1.1
 Author: Arseniy Ivanov, Evan Broder, Corey DeGrandchamp, Stephanie Leary
 Author URI: http://code.google.com/p/ljxp/
 */
 
 /*
 SCL TODO:
-- test filter
-- test excerpts
+- add option for private posts, then add private posts to ljxp_post_all()
 - use built-in WP stuff for curl (search SCL)
 - Fix comments display -- A-Bishop's code is trying to load wp-config directly; stop that
 /**/
@@ -42,11 +41,12 @@ function ljxp_remove_options() {
 }
 register_uninstall_hook( __FILE__, 'ljxp_remove_options' );
 // for testing only
-register_deactivation_hook( __FILE__, 'ljxp_remove_options' );
+// register_deactivation_hook( __FILE__, 'ljxp_remove_options' );
 
 function ljxp_post($post_id) {
 	global $wpdb, $tags, $cats; // tags/cats are going to be filtered thru an external function
 	$options = ljxp_get_options();
+	$errors = array();
 	
 	// Get postmeta overrides
 	$privacy = get_post_meta($post_id, 'ljxp_privacy', true);
@@ -54,8 +54,8 @@ function ljxp_post($post_id) {
 	$comments = get_post_meta($post_id, 'ljxp_comments', true);
 	if (isset($comments) && $comments != 0) $options['comments'] = $comments;
 
+	if (!is_array($options['skip_cats'])) $options['skip_cats'] = array();
 	$options['copy_cats'] = array_diff(get_all_category_ids(), $options['skip_cats']);
-	//$options['copy_cats'] = $options['skip_cats'];
 		
 	// If the post was manually set to not be crossposted, or nothing was set and the default is not to crosspost, give up now
 	if (0 == $options['crosspost'] || get_post_meta($post_id, 'no_lj', true)) {
@@ -72,6 +72,9 @@ function ljxp_post($post_id) {
 		if(in_array($cat, $options['copy_cats'])) {
 			$do_crosspost = 1;
 			break; // decision made and cannot be altered, fly on
+		}
+		else {
+			$errors['nocats'] = 'This post was not in any of the right categories, so it was not crossposted.';
 		}
 	}
 
@@ -107,8 +110,7 @@ function ljxp_post($post_id) {
 	$cats = array();
 	$tags = array();
 
-	$cats = wp_get_post_categories($post_id, array('fields' => 'all')); // wp_get_post_cats is deprecated as of WP2.5
-																		// the new function can get names itself, too
+	$cats = wp_get_post_categories($post_id, array('fields' => 'all')); 
 	$tags = wp_get_post_tags($post_id, array('fields' => 'all'));
 
 
@@ -203,7 +205,9 @@ function ljxp_post($post_id) {
 			// and if there's no <!--more--> tag, we can spit it out and go on our merry way
 			// after we fix [gallery] IDs, which must happen before 'the_content' filters
 			$the_content = $post->post_content;
-			$the_content = ljxp_fix_galleries($the_content);
+			$the_content = str_replace('[gallery', '[gallery id="'.$post->ID.'" ', $the_content);
+			$the_content = apply_filters('the_content', $the_content);
+			$the_content = str_replace(']]>', ']]&gt;', $the_content);
 			$the_content = apply_filters('ljxp_pre_process_post', $the_content);
 		
 			if(strpos($the_content, "<!--more") === false) {
@@ -214,19 +218,19 @@ function ljxp_post($post_id) {
 				$split_content = explode("-->", $content[1], 2);
 				$content[1] = $split_content[1];
 				$more_text = trim( $split_content[0] );
-				if( empty($more_text) )  
+				if (empty($more_text) )  
 					$more_text = $options['cut_text'];
-				$the_event .= apply_filters('the_content', $content[0]);
+				$the_event .= $content[0];
 				switch ($options['more']) {
 					case "copy":
-						$the_event .= apply_filters('the_content', $content[1]);
+						$the_event .= $content[1];
 						break;
 					case "link":
 						$the_event .= sprintf('<p><a href="%s#more-%s">', get_permalink($post_id), $post_id) .
 							$more_text . '</a></p>';
 						break;
 					case "lj-cut":
-						$the_event .= '<lj-cut text="'.$more_text.'">'.apply_filters('the_content', $content[1]).'</lj-cut>';
+						$the_event .= '<lj-cut text="'.$more_text.'">'.$content[1].'</lj-cut>';
 						break;
 				}
 			}
@@ -266,17 +270,10 @@ function ljxp_post($post_id) {
 												 'opt_backdated'	=> !($post_id == $recent_id), // prevent updated
 																	// post from being show on top
 												'taglist'			=> ($options['tag'] != 0 ? $cat_string : ''),
-												'picture_keyword'		=> "",
+												'picture_keyword'		=> (!empty($options['userpic']) ? $options['userpic'] : ''),
 												),
 					'usejournal'		=> (!empty($options['community']) ? $options['community'] : $options['username']),
 					);
-
-	// Set the userpic, if the user has one selected
-	if ($options['userpic'])
-	{
-		// Set the metadata which assigns a userpic (picture_keyword) to the post
-		$args['props']['picture_keyword'] = $options['userpic'];
-	}
 
 	// Set the privacy level according to the settings
 	switch($options['privacy']) {
@@ -317,7 +314,7 @@ function ljxp_post($post_id) {
 	if('LJ.XMLRPC.postevent' == $method) {
 		$response = $client->getResponse();
 		// Store it to the metadata
-		add_post_meta($post_id, 'ljID', $response['itemid']);
+		add_post_meta($post_id, 'ljID', $response['itemid'], true);
 	}
 	// If you don't return this, other plugins and hooks won't work
 	return $post_id;
@@ -373,9 +370,8 @@ function ljxp_delete($post_id) {
 
 
 	// And awaaaayyy we go!
-	if (!$client->query('LJ.XMLRPC.editevent', $args)) {
+	if (!$client->query('LJ.XMLRPC.editevent', $args))
 		$errors[$client->getErrorCode()] = $client->getErrorMessage();
-	}
 
 	delete_post_meta($post_id, 'ljID');
 	update_option('ljxp_error_notice', $errors );
@@ -419,7 +415,6 @@ function ljxp_error_notice() {
 function lj_xp_print_notices() {
 	$errors = get_option('ljxp_error_notice');
 	$options = ljxp_get_options();
-	$msg = sprintf(__("Crossposted to %s.", 'lj-xp'), $options['host']); 
 	$class = 'updated';
 	if (!empty($errors) && $_GET['action'] == 'edit') { // show this only after we've posted something
 		foreach ($errors as $code => $error) {
@@ -435,7 +430,11 @@ function lj_xp_print_notices() {
 					$class = 'error';
 					break;
 				case '101' : 
-					$msg .= sprintf(__('Could not crosspost. Please reenter your %s password in the <a href="%s">options screen</a> and try again. (%s : %s)', 'lj-xp'), 'options-general.php?page=lj_xp.php', $options['host'], $code, $error );
+					$msg .= sprintf(__('Could not crosspost. Please reenter your %s password in the <a href="%s">options screen</a> and try again. (%s : %s)', 'lj-xp'), 'options-general.php?page=lj_xp.php', 'options-general.php?page=lj-xp-options.php', $code, $error );
+					$class = 'error';
+					break;
+				case '302' : 
+					$msg .= sprintf(__('Could not crosspost the updated entry to %s. (%s : %s)', 'lj-xp'), $options['host'], $code, $error );
 					$class = 'error';
 					break;
 				default: 
@@ -445,6 +444,8 @@ function lj_xp_print_notices() {
 			}
 		}
 	}
+	if ($class == 'updated') // still good?
+		$msg = sprintf(__("Crossposted to %s.", 'lj-xp'), $options['host']); 
 	echo '<div class="'.$class.'"><p>'.$msg.'<p></div>';
 	update_option('ljxp_error_notice', ''); // turn off the message
 }
@@ -554,34 +555,34 @@ function ljxp_save($post_id) {
 	if(isset($_POST['ljxp_crosspost'])) {
 		delete_post_meta($post_id, 'no_lj');
 		if(0 == $_POST['ljxp_crosspost']) {
-			add_post_meta($post_id, 'no_lj', '1');
+			add_post_meta($post_id, 'no_lj', '1', true);
 		}
 	}
 	if(isset($_POST['ljxp_comments'])) {
 		delete_post_meta($post_id, 'ljxp_comments');
 		if($_POST['ljxp_comments'] !== 0) {
-			add_post_meta($post_id, 'ljxp_comments', $_POST['ljxp_comments']);
+			add_post_meta($post_id, 'ljxp_comments', $_POST['ljxp_comments'], true);
 		}
 	}
 
 	if(isset($_POST['ljxp_privacy'])) {
 			delete_post_meta($post_id, 'ljxp_privacy');
 		if($_POST['ljxp_privacy'] !== 0) {
-			add_post_meta($post_id, 'ljxp_privacy', $_POST['ljxp_privacy']);
+			add_post_meta($post_id, 'ljxp_privacy', $_POST['ljxp_privacy'], true);
 		}
 	}
 
 	if(isset($_POST['ljxp_userpic'])) {
 		delete_post_meta($post_id, 'ljxp_userpic');
 		if($_POST['ljxp_userpic'] !== 0 && $_POST['ljxp_userpic'] !== "Use default") {
-			add_post_meta($post_id, 'ljxp_userpic', $_POST['ljxp_userpic']);
+			add_post_meta($post_id, 'ljxp_userpic', $_POST['ljxp_userpic'], true);
 		}
 	}
 	
 	if(isset($_POST['ljxp_cut_text'])) {
 		delete_post_meta($post_id, 'ljxp_cut_text');
 		if(!empty($_POST['ljxp_cut_text'])) {
-			add_post_meta($post_id, 'ljxp_cut_text', esc_html($_POST['ljxp_cut_text']));
+			add_post_meta($post_id, 'ljxp_cut_text', esc_html($_POST['ljxp_cut_text']), true);
 		}
 	}
 }
@@ -590,6 +591,7 @@ function ljxp_delete_all($repost_ids) {
 	foreach((array)$repost_ids as $id) {
 		ljxp_delete($id);
 	}
+	return _e('Deleted all entries from the other journal.', 'lj-xp');
 }
 
 function ljxp_post_all($repost_ids) {
@@ -601,13 +603,7 @@ function ljxp_post_all($repost_ids) {
 	foreach((array)$repost_ids as $id) {
 		ljxp_post($id);
 	}
-}
-
-// fix gallery shortcodes
-function ljxp_fix_galleries($the_content) {
-	$the_content = str_replace('[gallery', '[gallery id="'.$post->ID.'" ', $the_content);
-	$the_content = apply_filters('the_content', $the_content);
-	return str_replace(']]>', ']]&gt;', $the_content);
+	return _e('Posted all entries to the other journal.', 'lj-xp');
 }
 
 function ljxp_css() { ?>
@@ -628,6 +624,8 @@ function ljxp_settings_css() { ?>
 	table.editform th { text-align: left; }
 	ul#category-children { list-style: none; height: 15em; width: 20em; overflow-y: scroll; border: 1px solid #dfdfdf; padding: 0 1em; background: #fff; border-radius: 4px; -moz-border-radius: 4px; -webkit-border-radius: 4px; }
  	ul.children { margin-left: 1.5em; }
+	tr#scary-buttons { display: none; }
+	#delete_all { font-weight: bold; color: #c00; }
 	</style>
 <?php
 }
@@ -639,10 +637,10 @@ if (!empty($option)) {
 	add_action('add_meta_boxes', 'ljxp_meta_box');
 	add_action('admin_head-post-new.php', 'ljxp_css');
 	add_action('admin_head-post.php', 'ljxp_css');
-	add_action('publish_post', 'ljxp_post', 50);
-	add_action('publish_future_post', 'ljxp_post', 50);
-	add_action('edit_post', 'ljxp_edit', 50);
-	add_action('delete_post', 'ljxp_delete', 50);
+	add_action('publish_post', 'ljxp_post');
+	add_action('publish_future_post', 'ljxp_post');
+	add_action('edit_post', 'ljxp_edit');
+	add_action('delete_post', 'ljxp_delete');
 	add_action('publish_post', 'ljxp_save', 1);
 	add_action('save_post', 'ljxp_save', 1);
 	add_action('edit_post', 'ljxp_save', 1);
@@ -653,10 +651,8 @@ if (!empty($option)) {
 // Borrow wp-lj-comments by A-Bishop:
 if(!function_exists('lj_comments')){
 	function lj_comments($post_id){
-		// disable this until it works right
-		// $link = plugins_url( "wp-lj-comments.php?post_id=".$post_id , __FILE__ );
-		// return '<img src="'.$link.'" border="0">';
-		return '';
+		$link = plugins_url( "wp-lj-comments.php?post_id=".$post_id , __FILE__ );
+		return '<img src="'.$link.'" border="0">';
 	}
 }
 

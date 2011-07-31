@@ -1,7 +1,9 @@
 <?php
 
+//if (empty($wp)) require_once('wp-config.php');
+require_once('wp-blog-header.php');
+global $wpdb;
 $id = $_GET['post_id']; 
-if (empty($wp)) require_once('wp-config.php');
 $number=$wpdb->get_var("SELECT COUNT(*) FROM $wpdb->comments WHERE comment_post_ID = '$id' AND comment_approved = '1'");
 $font = 2;
 if($number < 10) $image_width = 8;
