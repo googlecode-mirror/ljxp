@@ -42,7 +42,7 @@ to your WP blog instead!
 * Added [author] tag for header/footer (<a href="http://code.google.com/p/ljxp/issues/detail?id=34">#34</a>)
 * Settings API! Much better security.
 * General settings cleanup. Now using two settings instead of thirteen, and removing settings on plugin uninstall.
-* More improvements to the error handling
+* More improvements to the error handling.
 = 2.1 =
 * send error back to the post edit screen when LJ is down (transport/socket errors) rather than using wp_die(), which stops all other plugins from working
 * support userpics (<a href="http://code.google.com/p/ljxp/issues/detail?id=74">#74</a>)
@@ -56,3 +56,5 @@ to your WP blog instead!
 == Upgrade Notice ==
 = 2.1 =
 * This version sends error back to the post edit screen when LJ is down rather than stopping WordPress entirely. Added support for userpics, cut text, [gallery] tags with the right images, and a proper box for the options on the Edit screen.
+= 2.1.1 = 
+* New options: turn off crossposting by default; crosspost excerpt instead of full text; [author] tag for header/footer. Fix for `<!--more-->` tags containing text. More improvements to the error handling.
