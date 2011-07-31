@@ -1,4 +1,6 @@
+#summary Release notes for 2.1.x
 #labels Featured
+
 = 2.1 =
 
   * send error back to the post edit screen when LJ is down rather than using wp_die(), which stops all other plugins from working
@@ -28,5 +30,3 @@
 
   * Fixed category handling and a warning about arrays on line 89 that could also lead to "headers already sent" message on some servers.
   * Translations: generated new POT from wordpress.org; updated old .po/.mo files to match the new text domain.
-
-#summary Release notes for 2.1.x
