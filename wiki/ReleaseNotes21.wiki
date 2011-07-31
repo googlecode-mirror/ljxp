@@ -30,3 +30,7 @@
 
   * Fixed category handling and a warning about arrays on line 89 that could also lead to "headers already sent" message on some servers.
   * Translations: generated new POT from wordpress.org; updated old .po/.mo files to match the new text domain.
+
+= Coming in the next release =
+  
+  * Support for [CustomHeaderFields]
