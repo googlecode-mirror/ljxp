@@ -299,6 +299,7 @@ function ljxp_display_options() {
 						<dt>[author]</dt>
 						<dd><?php _e('The display name of the post\'s author', 'lj-xp'); ?></dd>
 					</dl>
+					<span class="description"><?php printf(__('You can also <a href="%s">define your own fields</a>.', 'lj-xp'), 'http://code.google.com/p/ljxp/wiki/CustomHeaderFields'); ?></span>
 					</td>
 			</table>
 		</fieldset>

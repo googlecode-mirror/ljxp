@@ -34,6 +34,8 @@ to your WP blog instead!
 1. Go to Settings &rarr; LiveJournal and configure your settings.
 
 == Changelog ==
+= 2.2 =
+* Added support for custom fields in the header/footer. <a href="http://code.google.com/p/ljxp/wiki/CustomHeaderFields">See the wiki for documentation.</a> (<a href="http://code.google.com/p/ljxp/issues/detail?id=113">#113</a>)
 = 2.1.1 =
 * Fix for `<!--more-->` tags containing text (<a href="http://code.google.com/p/ljxp/issues/detail?id=76">#76</a>)
 * Added a filter, `ljxp_pre_process_post`, applied to the post content before it's crossposted (<a href="http://code.google.com/p/ljxp/issues/detail?id=120">#120</a>)
