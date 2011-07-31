@@ -3,12 +3,15 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://code.google.com/p/ljxp/
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well.
-Version: 2.1.2
+Version: 2.2-alpha
 Author: Arseniy Ivanov, Evan Broder, Corey DeGrandchamp, Stephanie Leary
 Author URI: http://code.google.com/p/ljxp/
 */
 
 /*
+THIS ALPHA INCLUDES:
+- support for custom fields in the post header/footer (see )
+
 SCL TODO:
 - add option for private posts, then add private posts to ljxp_post_all()
 - use built-in WP stuff for curl (search SCL)
@@ -191,6 +194,7 @@ function ljxp_post($post_id) {
 		$find = array('[blog_name]', '[blog_link]', '[permalink]', '[comments_link]', '[comments_count]', '[tags]', '[categories]', '[author]');
 		$replace = array($blogName, get_option('home'), get_permalink($post_id), get_permalink($post_id).'#comments', lj_comments($post_id), $htags, $hcats, $author);
 		$postHeader = str_replace($find, $replace, $postHeader);
+		$postHeader = apply_filters('ljxp_post_header', $postHeader, $post_id);
 	}
 
 	// $the_event will eventually be passed to the LJ XML-RPC server.
