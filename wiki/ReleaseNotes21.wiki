@@ -24,4 +24,9 @@
   * General settings cleanup. Now using two settings instead of thirteen, and removing settings on plugin uninstall.
   * More improvements to the error handling.
 
-#summary Release notes for 2.1 and 2.1.1
+= 2.1.2 =
+
+  * Fixed category handling and a warning about arrays on line 89 that could also lead to "headers already sent" message on some servers.
+  * Translations: generated new POT from wordpress.org; updated old .po/.mo files to match the new text domain.
+
+#summary Release notes for 2.1.x
