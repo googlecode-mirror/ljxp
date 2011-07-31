@@ -18,14 +18,15 @@ to your WP blog instead!
 
 = Features =
 
-* Crosspost entries to a LiveJournal account.
-* Crosspost entries to a LiveJournal community.
-* Add a header/footer to force comments on your site.
+* Crosspost entries to a LiveJournal account or community.
 * Fully customizable header and/or footer.
+* Force comments to be on one site or the other, or allow them on both.
 * Edit privacy settings for the LiveJournal posts.
-* Assign tags based on WordPress categories.
+* Assign tags based on WordPress categories and/or tags.
 * Assign `<!--more-->` tag settings, like LJ-Cuts, or link-backs.
-* Ability to only crosspost certain categories.
+* Crosspost only certain categories.
+* Crosspost excerpts or full text.
+* Option to <em>not</em> crosspost by default.
 
 == Installation ==
 
@@ -36,6 +37,8 @@ to your WP blog instead!
 == Changelog ==
 = 2.2 =
 * Added support for custom fields in the header/footer. <a href="http://code.google.com/p/ljxp/wiki/CustomHeaderFields">See the wiki for documentation.</a> (<a href="http://code.google.com/p/ljxp/issues/detail?id=113">#113</a>)
+* Now auto-generates excerpts from the content, if crossposting excerpts and the post doesn't have an excerpt specified (<a href="http://code.google.com/p/ljxp/issues/detail?id=139">#139</a>)
+* Added a filter, `ljxp_pre_process_excerpt`, applied to the excerpt before it's crossposted. Developers should use this in addition to `ljxp_pre_process_post` to support both excerpt and full-text options.
 = 2.1.1 =
 * Fix for `<!--more-->` tags containing text (<a href="http://code.google.com/p/ljxp/issues/detail?id=76">#76</a>)
 * Added a filter, `ljxp_pre_process_post`, applied to the post content before it's crossposted (<a href="http://code.google.com/p/ljxp/issues/detail?id=120">#120</a>)

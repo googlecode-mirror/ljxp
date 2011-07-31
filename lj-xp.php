@@ -203,8 +203,29 @@ function ljxp_post($post_id) {
 	// and if the post isn't password protected, we need to put together the
 	// actual post
 	if(!$post->post_password) {
-		if ($options['content'] == 'excerpt')
-			$the_event = apply_filters('the_excerpt', $post->post_excerpt);
+		if ($options['content'] == 'excerpt') {
+			$excerpt = $post->post_excerpt;
+			if (empty($excerpt)) {
+				// cloned from wp_trim_excerpt()
+				$excerpt = get_the_content('');	
+	            $excerpt = strip_shortcodes( $excerpt );
+	            $excerpt = apply_filters('the_content', $excerpt);
+	            $excerpt = str_replace(']]>', ']]&gt;', $excerpt);
+	            $excerpt = strip_tags($text);
+	            $excerpt_length = apply_filters('excerpt_length', 55);
+	            $excerpt_more = apply_filters('excerpt_more', ' ' . '[...]');
+	            $words = preg_split("/[\n\r\t ]+/", $excerpt, $excerpt_length + 1, PREG_SPLIT_NO_EMPTY);
+	            if ( count($words) > $excerpt_length ) {
+	                    array_pop($words);
+	                    $excerpt = implode(' ', $words);
+	                    $excerpt = $excerpt . $excerpt_more;
+	            } else {
+	                    $excerpt = implode(' ', $words);
+	            }
+			}	
+			$excerpt = apply_filters('the_excerpt', $excerpt);
+			$the_event = apply_filters('ljxp_pre_process_excerpt', $excerpt);
+		}
 		else {
 			// and if there's no <!--more--> tag, we can spit it out and go on our merry way
 			// after we fix [gallery] IDs, which must happen before 'the_content' filters
