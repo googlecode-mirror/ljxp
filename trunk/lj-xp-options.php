@@ -10,7 +10,7 @@ function ljxp_get_options() {
 			'crosspost'			=> 1,
 			'content'			=> 'full',
 			'privacy'			=> 'public',
-			'privacy-private'	=> 'no_lj',
+			'privacy_private'	=> 'no_lj',
 			'comments'			=> 0,
 			'tag'				=> '1',
 			'more'				=> 'link',
@@ -18,7 +18,7 @@ function ljxp_get_options() {
 			'skip_cats'			=> array(),
 			'header_loc'		=> 0,		// 0 means top, 1 means bottom
 			'custom_header'		=> '',
-			'delete_private'	=> 1,
+//			'delete_private'	=> 1,
 			'userpics'			=> array(),
 			'cut_text'			=> __('Read the rest of this entry &raquo;', 'lj-xp'),
 	);
@@ -165,7 +165,7 @@ function ljxp_display_options() {
 		$options = ljxp_get_options();
 		?>
 		<h2><?php _e('LiveJournal Crossposter Options', 'lj-xp'); ?></h2>
-		<!-- 	<pre><?php //print_r($options); ?></pre>   -->
+		<!--	<pre><?php //print_r($options); ?></pre>   -->
 		<table class="form-table ui-tabs-panel">
 			<tr valign="top">
 				<th scope="row"><?php _e('LiveJournal-compliant host:', 'lj-xp') ?></th>
@@ -331,22 +331,22 @@ function ljxp_display_options() {
 					<th scope="row"><?php _e('LiveJournal privacy level for all private WordPress posts', 'lj-xp'); ?></th>
 					<td>
 						<label>
-							<input name="ljxp[privacy-private]" type="radio" value="public" <?php checked($options['privacy-private'], 'public'); ?>/>
+							<input name="ljxp[privacy_private]" type="radio" value="public" <?php checked($options['privacy_private'], 'public'); ?>/>
 							<?php _e('Public', 'lj-xp'); ?>
 						</label>
 						<br />
 						<label>
-							<input name="ljxp[privacy-private]" type="radio" value="private" <?php checked($options['privacy-private'], 'private'); ?> />
+							<input name="ljxp[privacy_private]" type="radio" value="private" <?php checked($options['privacy_private'], 'private'); ?> />
 							<?php _e('Private', 'lj-xp'); ?>
 						</label>
 						<br />
 						<label>
-							<input name="ljxp[privacy-private]" type="radio" value="friends" <?php checked($options['privacy-private'], 'friends'); ?>/>
+							<input name="ljxp[privacy_private]" type="radio" value="friends" <?php checked($options['privacy_private'], 'friends'); ?>/>
 							<?php _e('Friends only', 'lj-xp'); ?>
 						</label>
 						<br />
 						<label>
-							<input name="ljxp[privacy-private]" type="radio" value="no_lj" <?php checked($options['privacy-private'], 'no_lj'); ?>/>
+							<input name="ljxp[privacy_private]" type="radio" value="no_lj" <?php checked($options['privacy_private'], 'no_lj'); ?>/>
 							<?php _e('Do not crosspost at all', 'lj-xp'); ?>
 						</label>
 						<br />
