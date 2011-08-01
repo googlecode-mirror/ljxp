@@ -10,6 +10,7 @@ function ljxp_get_options() {
 			'crosspost'			=> 1,
 			'content'			=> 'full',
 			'privacy'			=> 'public',
+			'privacy-private'	=> 'no_lj',
 			'comments'			=> 0,
 			'tag'				=> '1',
 			'more'				=> 'link',
@@ -307,7 +308,7 @@ function ljxp_display_options() {
 			<legend><h3><?php _e('Post Privacy', 'lj-xp'); ?></h3></legend>
 			<table class="form-table ui-tabs-panel">
 				<tr valign="top">
-					<th scope="row"><?php _e('Privacy level for all posts to LiveJournal', 'lj-xp'); ?></th>
+					<th scope="row"><?php _e('LiveJournal privacy level for all published WordPress posts', 'lj-xp'); ?></th>
 					<td>
 						<label>
 							<input name="ljxp[privacy]" type="radio" value="public" <?php checked($options['privacy'], 'public'); ?>/>
@@ -322,6 +323,31 @@ function ljxp_display_options() {
 						<label>
 							<input name="ljxp[privacy]" type="radio" value="friends" <?php checked($options['privacy'], 'friends'); ?>/>
 							<?php _e('Friends only', 'lj-xp'); ?>
+						</label>
+						<br />
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row"><?php _e('LiveJournal privacy level for all private WordPress posts', 'lj-xp'); ?></th>
+					<td>
+						<label>
+							<input name="ljxp[privacy-private]" type="radio" value="public" <?php checked($options['privacy-private'], 'public'); ?>/>
+							<?php _e('Public', 'lj-xp'); ?>
+						</label>
+						<br />
+						<label>
+							<input name="ljxp[privacy-private]" type="radio" value="private" <?php checked($options['privacy-private'], 'private'); ?> />
+							<?php _e('Private', 'lj-xp'); ?>
+						</label>
+						<br />
+						<label>
+							<input name="ljxp[privacy-private]" type="radio" value="friends" <?php checked($options['privacy-private'], 'friends'); ?>/>
+							<?php _e('Friends only', 'lj-xp'); ?>
+						</label>
+						<br />
+						<label>
+							<input name="ljxp[privacy-private]" type="radio" value="no_lj" <?php checked($options['privacy-private'], 'no_lj'); ?>/>
+							<?php _e('Do not crosspost at all', 'lj-xp'); ?>
 						</label>
 						<br />
 					</td>

@@ -60,8 +60,9 @@ function ljxp_post($post_id) {
 	if (!is_array($options['skip_cats'])) $options['skip_cats'] = array();
 	$options['copy_cats'] = array_diff(get_all_category_ids(), $options['skip_cats']);
 		
-	// If the post was manually set to not be crossposted, or nothing was set and the default is not to crosspost, give up now
-	if (0 == $options['crosspost'] || get_post_meta($post_id, 'no_lj', true)) {
+	// If the post was manually set to not be crossposted, or nothing was set and the default is not to crosspost,
+	// or it's private and the default is not to crosspost private posts, give up now
+	if (0 == $options['crosspost'] || get_post_meta($post_id, 'no_lj', true) || ('no_lj' == $options['privacy-private'] && $post->post_status == 'private')) {
 		return $post_id;
 	}
 
@@ -301,20 +302,39 @@ function ljxp_post($post_id) {
 					);
 
 	// Set the privacy level according to the settings
-	switch($options['privacy']) {
-		case "public":
-			$args['security'] = 'public';
-			break;
-		case "private":
-			$args['security'] = 'private';
-			break;
-		case "friends":
-			$args['security'] = 'usemask';
-			$args['allowmask'] = 1;
-			break;
-		default :
-			$args['security'] = "public";
-			break;
+	if ($post->post_status == 'public') {
+		switch($options['privacy']) {
+			case "public":
+				$args['security'] = 'public';
+				break;
+			case "private":
+				$args['security'] = 'private';
+				break;
+			case "friends":
+				$args['security'] = 'usemask';
+				$args['allowmask'] = 1;
+				break;
+			default :
+				$args['security'] = "public";
+				break;
+		}
+	}
+	elseif ($post->post_status == 'private') {
+		switch($options['privacy']) {
+			case "public":
+				$args['security'] = 'public';
+				break;
+			case "private":
+				$args['security'] = 'private';
+				break;
+			case "friends":
+				$args['security'] = 'usemask';
+				$args['allowmask'] = 1;
+				break;
+			default :
+				$args['security'] = "private";
+				break;
+		}
 	}
 
 	// Assume this is a new post
