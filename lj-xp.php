@@ -234,6 +234,7 @@ function ljxp_post($post_id) {
 			$the_content = str_replace('[gallery', '[gallery id="'.$post->ID.'" ', $the_content);
 			$the_content = apply_filters('the_content', $the_content);
 			$the_content = str_replace(']]>', ']]&gt;', $the_content);
+			$the_content = ljxp_fix_relative_links($the_content);
 			$the_content = apply_filters('ljxp_pre_process_post', $the_content);
 		
 			if(strpos($the_content, "<!--more") === false) {
@@ -448,6 +449,63 @@ function ljxp_edit($post_id) {
 	}
 
 	return $post_id;
+}
+
+function ljxp_fix_relative_links($content) {
+	// find all href attributes
+	preg_match_all('/<a[^>]* href=[\'"]?([^>\'" ]+)/', $content, $matches);
+	for ($i=0; $i<count($matches[0]); $i++) {
+		$hrefs[] = $matches[1][$i];
+	}
+	if (!empty($hrefs)) {
+		$count = count($hrefs);
+		$url = get_bloginfo('url');
+		$parsed = parse_url($url);
+		$site = $parsed['host']; // root domain of this site
+
+		foreach ($hrefs as $href) {
+			/* // we can leave these alone
+			// href="http://foo.com/images/foo"
+			if (preg_match('/^http:\/\//', $href)) { 
+				$linkpath = $matches[1][$i];			
+			}
+			/**/
+			// href="/images/foo"
+			if ('/' == substr($href, 0, 1)) { 
+				$linkpath = $site . $href;
+			}
+			// href="../../images/foo" or href="images/foo"
+			else { 
+				$linkpath = dirname($path) . '/' . $href;
+			}
+			// intersect base path and src, or just clean up junk
+			$linkpath = ljxp_remove_dot_segments($linkpath);
+		 
+			$content = str_replace($href, $linkpath, $content);
+		} // foreach
+	} // if empty
+	return $content;
+}
+
+function ljxp_remove_dot_segments( $path ) {
+	$inSegs  = preg_split( '!/!u', $path );
+	$outSegs = array( );
+	foreach ( $inSegs as $seg )
+	{
+	    if ( empty( $seg ) || $seg == '.' )
+	        continue;
+	    if ( $seg == '..' )
+	        array_pop( $outSegs );
+	    else
+	        array_push( $outSegs, $seg );
+	}
+	$outPath = implode( '/', $outSegs );
+	if ( $path[0] == '/' )
+	    $outPath = '/' . $outPath;
+	if ( $outPath != '/' &&
+	    (mb_strlen($path)-1) == mb_strrpos( $path, '/', 'UTF-8' ) )
+	    $outPath .= '/';
+	return $outPath;
 }
 
 function ljxp_error_notice() {
