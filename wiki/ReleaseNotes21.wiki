@@ -34,3 +34,7 @@
 = Coming in the next release =
   
   * Support for [CustomHeaderFields]
+  * Excerpts now auto-generate from the content, if we're crossposting excerpts and the post doesn't have an excerpt specified 
+  * Added another filter, `ljxp_pre_process_excerpt`, applied to the excerpt before it's crossposted. Developers should use this in addition to `ljxp_pre_process_post` to support both excerpt and full-text options.
+  * New option: default LJ privacy levels for private WP posts. (<a href="http://code.google.com/p/ljxp/issues/detail?id=73">#73</a>)
+  * Relative links are now converted to full URLs before the content is crossposted (<a href="http://code.google.com/p/ljxp/issues/detail?id=134">#134</a>)
