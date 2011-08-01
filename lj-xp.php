@@ -9,11 +9,10 @@ Author URI: http://code.google.com/p/ljxp/
 */
 
 /*
-THIS ALPHA INCLUDES:
-- support for custom fields in the post header/footer (see )
-
 SCL TODO:
-- add option for private posts, then add private posts to ljxp_post_all()
+- add private posts to ljxp_post_all()
+- private posts don't work in ljxp_edit()
+- auto-generating excerpts isn't working
 - use built-in WP stuff for curl (search SCL)
 - Fix comments display -- A-Bishop's code is trying to load wp-config directly; stop that
 /**/
@@ -62,7 +61,7 @@ function ljxp_post($post_id) {
 		
 	// If the post was manually set to not be crossposted, or nothing was set and the default is not to crosspost,
 	// or it's private and the default is not to crosspost private posts, give up now
-	if (0 == $options['crosspost'] || get_post_meta($post_id, 'no_lj', true) || ('no_lj' == $options['privacy-private'] && $post->post_status == 'private')) {
+	if (0 == $options['crosspost'] || get_post_meta($post_id, 'no_lj', true) || ('no_lj' == $options['privacy_private'] && $post->post_status == 'private')) {
 		return $post_id;
 	}
 
@@ -208,7 +207,7 @@ function ljxp_post($post_id) {
 			$excerpt = $post->post_excerpt;
 			if (empty($excerpt)) {
 				// cloned from wp_trim_excerpt()
-				$excerpt = get_the_content('');	
+				$excerpt = $post->post_content;	
 	            $excerpt = strip_shortcodes( $excerpt );
 	            $excerpt = apply_filters('the_content', $excerpt);
 	            $excerpt = str_replace(']]>', ']]&gt;', $excerpt);
@@ -321,7 +320,7 @@ function ljxp_post($post_id) {
 		}
 	}
 	elseif ($post->post_status == 'private') {
-		switch($options['privacy']) {
+		switch($options['privacy_private']) {
 			case "public":
 				$args['security'] = 'public';
 				break;
@@ -441,10 +440,9 @@ function ljxp_edit($post_id) {
 	$post = & get_post($post_id);
 
 	// See if the post is currently published. If it's been crossposted and its
-	// state isn't published, then it should be deleted
-	// Also, if it has been crossposted but it's set to not crosspost, then
-	// delete it
-	if('publish' != $post->post_status || 1 == get_post_meta($post_id, 'no_lj', true)) {
+	// state isn't published AND it wasn't set to private with a setting that publishes private posts, then it should be deleted
+	// Also, if it has been crossposted but it's set to not crosspost, then delete it
+	if(('publish' != $post->post_status || ('private' == $post->post_status && $options['privacy_private'] == 'no_lj')) || 1 == get_post_meta($post_id, 'no_lj', true)) {
 		ljxp_delete($post_id);
 	}
 
@@ -700,7 +698,7 @@ function ljxp_delete_all($repost_ids) {
 function ljxp_post_all($repost_ids) {
 	if (empty($repost_ids)) {
 		global $wpdb;
-		$repost_ids = $wpdb->get_col("SELECT ID FROM $wpdb->posts WHERE post_status='publish' AND post_type='post'");
+		$repost_ids = $wpdb->get_col("SELECT ID FROM $wpdb->posts WHERE post_status='publish' OR post_status='private' AND post_type='post'");
 	}
 	@set_time_limit(0);
 	foreach((array)$repost_ids as $id) {
