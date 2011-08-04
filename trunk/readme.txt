@@ -35,6 +35,7 @@ to your WP blog instead!
 1. Go to Settings &rarr; LiveJournal and configure your settings.
 
 == Changelog ==
+
 = 2.2 =
 * New option: default LJ privacy levels for private WP posts. (<a href="http://code.google.com/p/ljxp/issues/detail?id=73">#73</a>)
 * Added support for custom fields in the header/footer. <a href="http://code.google.com/p/ljxp/wiki/CustomHeaderFields">See the wiki for documentation.</a> (<a href="http://code.google.com/p/ljxp/issues/detail?id=113">#113</a>)
@@ -43,9 +44,11 @@ to your WP blog instead!
 * Relative links are now converted to full URLs before the content is crossposted (<a href="http://code.google.com/p/ljxp/issues/detail?id=134">#134</a>)
 * Galleries are now crossposted with inline styles, so their grid layout is maintained (<a href="http://code.google.com/p/ljxp/issues/detail?id=117">#117</a>)
 * When posting to a community, deleted WP entries are now deleted from the community.
+
 = 2.1.2 = 
 * Fixed category handling and a warning about arrays on line 89 that could also lead to "headers already sent" message on some servers.
 * Translations: generated new POT from wordpress.org; updated old .po/.mo files to match the new text domain.
+
 = 2.1.1 =
 * Fix for `<!--more-->` tags containing text (<a href="http://code.google.com/p/ljxp/issues/detail?id=76">#76</a>)
 * Added a filter, `ljxp_pre_process_post`, applied to the post content before it's crossposted (<a href="http://code.google.com/p/ljxp/issues/detail?id=120">#120</a>)
@@ -55,6 +58,7 @@ to your WP blog instead!
 * Settings API! Much better security.
 * General settings cleanup. Now using two settings instead of thirteen, and removing settings on plugin uninstall.
 * More improvements to the error handling.
+
 = 2.1 =
 * send error back to the post edit screen when LJ is down (transport/socket errors) rather than using `wp_die()`, which stops all other plugins from working
 * support userpics (<a href="http://code.google.com/p/ljxp/issues/detail?id=74">#74</a>)
@@ -68,7 +72,9 @@ to your WP blog instead!
 == Upgrade Notice ==
 = 2.1 =
 * This version sends an error back to the post edit screen when LJ is down rather than stopping WordPress entirely. Added support for userpics, cut text, [gallery] tags with the right images, and a proper box for the options on the Edit screen.
+
 = 2.1.1 = 
 * 2.1 sends an error back to the screen when LJ is down rather than stopping WordPress entirely. Supports userpics, cut text; fixed [gallery] images and meta boxes. New in 2.1.1: turn off crossposting by default; crosspost excerpt or full text; [author] tag; `<!--more-->` tags with text.
+
 = 2.1.2 =
 * 2.1 shows an error when LJ is down rather than stopping WordPress. Supports userpics, cut text; fixed [gallery] images and meta boxes. New in 2.1.1: turn off crossposting by default; crosspost excerpt or full text; [author] tag; `<!--more-->` tags with text. 2.1.2: fix line 89 error.
