@@ -864,10 +864,10 @@ if (!empty($options)) {
 if(!function_exists('lj_comments')){
 	function lj_comments($post_id){
 		// disable until this works
-//		if ( !is_wp_error( $post_id ) ) {
-//			$link = plugins_url( "wp-lj-comments.php?post_id=".$post_id , __FILE__ );
-//			return '<img src="'.$link.'" border="0">';
-//		}
+		if ( !is_wp_error( $post_id ) ) {
+			$link = plugins_url( "wp-lj-comments.php?post_id=".$post_id , __FILE__ );
+			return '<img src="'.$link.'" border="0">';
+		}
 	return '';
 	}
 }
