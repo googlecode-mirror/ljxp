@@ -10,7 +10,6 @@ Author URI: http://code.google.com/p/ljxp/
 
 /*
 SCL TODO:
-- private-to-flock posts don't seem to get assigned an ljID; screws everything up
 - use built-in WP stuff for curl (search SCL)
 - Fix comments display -- A-Bishop's code is trying to load wp-config directly; stop that
 /**/
@@ -86,6 +85,7 @@ function ljxp_post($post_id) {
 
 	// And create our connection
 	$client = new IXR_Client($options['host'], '/interface/xmlrpc');
+	//$client->debug = true;
 
 	// Get the challenge string
 	// Using challenge for the most security. Allows pwd hash to be stored
@@ -276,7 +276,7 @@ function ljxp_post($post_id) {
 	}
 
 	// Get the most recent post (to see if this is it - it it's not, backdate)
-	$recent_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_status='publish' AND post_type='post' ORDER BY post_date DESC LIMIT 1");
+	$recent_id = $wpdb->get_var("SELECT ID FROM $wpdb->posts WHERE post_status='publish' OR post_status='private' AND post_type='post' ORDER BY post_date DESC LIMIT 1");
 
 	// Get a timestamp for retrieving dates later
 	$date = strtotime($post->post_date);
@@ -295,7 +295,7 @@ function ljxp_post($post_id) {
 					'min'				=> date('i', $date),
 					'props'				=> array('opt_nocomments'	=> !$options['comments'], // allow comments?
 												 'opt_preformatted'	=> true, // event text is preformatted
-												 'opt_backdated'	=> !($post_id == $recent_id), // prevent updated
+												 'opt_backdated'	=> !($recent_id == $post_id), // prevent updated
 																	// post from being show on top
 												'taglist'			=> ($options['tag'] != 0 ? $cat_string : ''),
 												'picture_keyword'		=> (!empty($options['userpic']) ? $options['userpic'] : ''),
@@ -348,8 +348,6 @@ function ljxp_post($post_id) {
 		$args['itemid'] = get_post_meta($post_id, 'ljID', true);
 		$method = 'LJ.XMLRPC.editevent';
 	}
-
-	//$client->debug = true;
 	
 	// And awaaaayyy we go!
 	if (!$client->query($method, $args)) {
@@ -360,20 +358,8 @@ function ljxp_post($post_id) {
 	if ('LJ.XMLRPC.postevent' == $method) {
 		$response = $client->getResponse();
 		// Store it to the metadata
-		add_post_meta($post_id, 'ljID', $response['itemid'], true);
-		add_post_meta($post_id, 'ljURL', $response['url'], true);
-		/*
-		// for some reason these fail on private posts when the keys are unique
-		if ($post->post_status == 'private') {
-			add_post_meta($post_id, 'ljID', $response['itemid']);
-			add_post_meta($post_id, 'ljURL', $response['url']);
-		}
-		else {
-			$errors['itemid'] = add_post_meta($post_id, 'ljID', $response['itemid'], true);
-			$errors['url'] = add_post_meta($post_id, 'ljURL', $response['url'], true);
-			//var_dump($response);
-		}
-		/**/
+		$ljID = add_post_meta($post->ID, 'ljID', $response['itemid'], true);
+		$ljURL = add_post_meta($post->ID, 'ljURL', $response['url'], true);
 	}
 	
 	// If there were errors, store them
@@ -434,8 +420,8 @@ function ljxp_delete($post_id) {
 	if (!$client->query('LJ.XMLRPC.editevent', $args))
 		$errors[$client->getErrorCode()] = $client->getErrorMessage();
 
-//	delete_post_meta($post_id, 'ljID');
-//	delete_post_meta($post_id, 'ljURL');
+	delete_post_meta($post_id, 'ljID');
+	delete_post_meta($post_id, 'ljURL');
 	update_option('ljxp_error_notice', $errors );
 	
 	return $post_id;
@@ -631,7 +617,7 @@ function lj_xp_print_notices() {
 	$errors = get_option('ljxp_error_notice');
 	$options = ljxp_get_options();
 	$class = 'updated';
-	if (!empty($errors) && $_GET['action'] == 'edit') { // show this only after we've posted something
+	if (!empty($errors) && isset($_GET['action']) && $_GET['action'] == 'edit') { // show this only after we've posted something
 		foreach ($errors as $code => $error) {
 			$code = trim( (string)$code);
 			switch ($code) {
@@ -652,12 +638,12 @@ function lj_xp_print_notices() {
 					$msg .= sprintf(__('Could not crosspost the updated entry to %s. (%s : %s)', 'lj-xp'), $options['host'], $code, $error );
 					$class = 'error';
 					break;
-				case 'itemid':
+				case 'ljID':
 					$class = 'error';
-					$msg .= 'add post meta for ljID returned: '.$error;
-				case 'url':
+					if (!$error) $msg .= 'Could not add post meta for ljID.';
+				case 'ljURL':
 					$class = 'error';
-					$msg .= 'add post meta for URL returned: '.$error;
+					if (!$error) $msg .= 'Could not add post meta for ljURL.';
 				default: 
 					$msg .= sprintf(__('Error from %s: %s : %s', 'lj-xp'), $options['host'], $code, $error );
 					$class = 'error';
