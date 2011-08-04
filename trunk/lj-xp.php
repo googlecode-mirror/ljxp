@@ -46,10 +46,11 @@ function ljxp_post($post_id) {
 	global $wpdb, $tags, $cats; // tags/cats are going to be filtered thru an external function
 	$options = ljxp_get_options();
 	$errors = array();
+	$post = &get_post($post_id);
 	
 	// Get postmeta overrides
 	$privacy = get_post_meta($post_id, 'ljxp_privacy', true);
-	if (isset($privacy) && $privacy != 0) $options['privacy'] = $privacy;
+	if (isset($privacy) && $privacy != 0) $options['privacy'] = $options['privacy_private'] = $privacy;
 	$comments = get_post_meta($post_id, 'ljxp_comments', true);
 	if (isset($comments) && $comments != 0) $options['comments'] = $comments;
 
@@ -97,8 +98,6 @@ function ljxp_post($post_id) {
 	// And retrieve the challenge string
 	$response = $client->getResponse();
 	$challenge = $response['challenge'];
-
-	$post = &get_post($post_id);
 
 	// Insert the name of the page we're linking back to based on the options set
 	if (empty($options['custom_name_on']))
@@ -366,7 +365,7 @@ function ljxp_post($post_id) {
 	update_option('ljxp_error_notice', $errors);
 	
 	// If you don't return this, other plugins and hooks won't work
-	return $post_id;
+	return $post->ID;
 }
 
 function ljxp_delete($post_id) {
@@ -798,10 +797,10 @@ function ljxp_delete_all($repost_ids) {
 	foreach((array)$repost_ids as $id) {
 		ljxp_delete($id);
 	}
-	return _e('Deleted all entries from the other journal.', 'lj-xp');
+	return __('Deleted all entries from the other journal.', 'lj-xp');
 }
 
-function ljxp_post_all($repost_ids) {
+function ljxp_post_all($repost_ids = '') {
 	if (empty($repost_ids)) {
 		global $wpdb;
 		$repost_ids = $wpdb->get_col("SELECT ID FROM $wpdb->posts WHERE post_status='publish' OR post_status='private' AND post_type='post'");
@@ -810,7 +809,7 @@ function ljxp_post_all($repost_ids) {
 	foreach((array)$repost_ids as $id) {
 		ljxp_post($id);
 	}
-	return _e('Posted all entries to the other journal.', 'lj-xp');
+	return __('Posted all entries to the other journal.', 'lj-xp');
 }
 
 function ljxp_css() { ?>
@@ -866,9 +865,9 @@ if(!function_exists('lj_comments')){
 	function lj_comments($post_id){
 		// disable until this works
 //		if ( !is_wp_error( $post_id ) ) {
-//		$link = plugins_url( "wp-lj-comments.php?post_id=".$post_id , __FILE__ );
-//		return '<img src="'.$link.'" border="0">';
-//	}
+//			$link = plugins_url( "wp-lj-comments.php?post_id=".$post_id , __FILE__ );
+//			return '<img src="'.$link.'" border="0">';
+//		}
 	return '';
 	}
 }
