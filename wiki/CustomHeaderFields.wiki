@@ -6,23 +6,6 @@ Version 2.2 of LJ-XP includes a new filter, `ljxp_post_header`, that lets you ad
 
 This requires some ability to tinker in PHP, but it's very flexible -- you could add virtually anything you want.
 
-(Version 2.2 is not out yet. If you want to add this feature right now, you can edit `lj-xp.php` beginning at line 196:
-
-Before:
-{{{
-$postHeader = str_replace($find, $replace, $postHeader);
-}
-}}}
-
-After:
-{{{
-$postHeader = str_replace($find, $replace, $postHeader);
-$postHeader = apply_filters('ljxp_post_header', $postHeader, $post_id);
-}
-}}}
-
-If there are any minor releases before 2.2, this will be included, and I will change the version number on this page to match.)
-
 == How to Use the Filter ==
 
 Buckle up; you're about to become a plugin author! (If you aren't already.)
