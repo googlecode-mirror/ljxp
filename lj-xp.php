@@ -414,7 +414,6 @@ function ljxp_delete($post_id) {
 	// value of $args[event]. By setting it to a null value, LJ deletes the
 	// entry. Really rather klunky way of doing things, but not my code!
 	$args = array(
-
 				'username' => $options['username'],
 				'auth_method' => 'challenge',
 				'auth_challenge' => $challenge,
@@ -428,7 +427,7 @@ function ljxp_delete($post_id) {
 				'day' => date('j'),
 				'hour' => date('G'),
 				'min' => date('i'),
-
+				'usejournal' => (!empty($options['community']) ? $options['community'] : $options['username']),
 	);
 
 	// And awaaaayyy we go!
