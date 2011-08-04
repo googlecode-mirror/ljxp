@@ -42,6 +42,7 @@ to your WP blog instead!
 * Added a filter, `ljxp_pre_process_excerpt`, applied to the excerpt before it's crossposted. Developers should use this in addition to `ljxp_pre_process_post` to support both excerpt and full-text options.
 * Relative links are now converted to full URLs before the content is crossposted (<a href="http://code.google.com/p/ljxp/issues/detail?id=134">#134</a>)
 * Galleries are now crossposted with inline styles, so their grid layout is maintained (<a href="http://code.google.com/p/ljxp/issues/detail?id=117">#117</a>)
+* When posting to a community, deleted WP entries are now deleted from the community.
 = 2.1.2 = 
 * Fixed category handling and a warning about arrays on line 89 that could also lead to "headers already sent" message on some servers.
 * Translations: generated new POT from wordpress.org; updated old .po/.mo files to match the new text domain.
