@@ -36,11 +36,12 @@ to your WP blog instead!
 
 == Changelog ==
 = 2.2 =
+* New option: default LJ privacy levels for private WP posts. (<a href="http://code.google.com/p/ljxp/issues/detail?id=73">#73</a>)
 * Added support for custom fields in the header/footer. <a href="http://code.google.com/p/ljxp/wiki/CustomHeaderFields">See the wiki for documentation.</a> (<a href="http://code.google.com/p/ljxp/issues/detail?id=113">#113</a>)
 * Now auto-generates excerpts from the content, if crossposting excerpts and the post doesn't have an excerpt specified (<a href="http://code.google.com/p/ljxp/issues/detail?id=139">#139</a>)
 * Added a filter, `ljxp_pre_process_excerpt`, applied to the excerpt before it's crossposted. Developers should use this in addition to `ljxp_pre_process_post` to support both excerpt and full-text options.
-* New option: default LJ privacy levels for private WP posts. (<a href="http://code.google.com/p/ljxp/issues/detail?id=73">#73</a>)
 * Relative links are now converted to full URLs before the content is crossposted (<a href="http://code.google.com/p/ljxp/issues/detail?id=134">#134</a>)
+* Galleries are now crossposted with inline styles, so their grid layout is maintained (<a href="http://code.google.com/p/ljxp/issues/detail?id=117">#117</a>)
 = 2.1.2 = 
 * Fixed category handling and a warning about arrays on line 89 that could also lead to "headers already sent" message on some servers.
 * Translations: generated new POT from wordpress.org; updated old .po/.mo files to match the new text domain.
