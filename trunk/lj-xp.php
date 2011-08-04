@@ -10,9 +10,7 @@ Author URI: http://code.google.com/p/ljxp/
 
 /*
 SCL TODO:
-- add private posts to ljxp_post_all()
-- private posts don't work in ljxp_edit()
-- auto-generating excerpts isn't working
+- private-to-flock posts don't seem to get assigned an ljID; screws everything up
 - use built-in WP stuff for curl (search SCL)
 - Fix comments display -- A-Bishop's code is trying to load wp-config directly; stop that
 /**/
@@ -61,7 +59,8 @@ function ljxp_post($post_id) {
 		
 	// If the post was manually set to not be crossposted, or nothing was set and the default is not to crosspost,
 	// or it's private and the default is not to crosspost private posts, give up now
-	if (0 == $options['crosspost'] || get_post_meta($post_id, 'no_lj', true) || ('no_lj' == $options['privacy_private'] && $post->post_status == 'private')) {
+	if (0 == $options['crosspost'] || get_post_meta($post_id, 'no_lj', true) || ('private' == $post->post_status && $options['privacy_private'] == 'no_lj')) {
+		$errors['nopost'] = 'This post was set to not crosspost.';
 		return $post_id;
 	}
 
@@ -211,7 +210,7 @@ function ljxp_post($post_id) {
 	            $excerpt = strip_shortcodes( $excerpt );
 	            $excerpt = apply_filters('the_content', $excerpt);
 	            $excerpt = str_replace(']]>', ']]&gt;', $excerpt);
-	            $excerpt = strip_tags($text);
+	            $excerpt = strip_tags($excerpt);
 	            $excerpt_length = apply_filters('excerpt_length', 55);
 	            $excerpt_more = apply_filters('excerpt_more', ' ' . '[...]');
 	            $words = preg_split("/[\n\r\t ]+/", $excerpt, $excerpt_length + 1, PREG_SPLIT_NO_EMPTY);
@@ -229,12 +228,15 @@ function ljxp_post($post_id) {
 		else {
 			// and if there's no <!--more--> tag, we can spit it out and go on our merry way
 			// after we fix [gallery] IDs, which must happen before 'the_content' filters
+			// fixing the IDs now happens in the gallery filter, whee!
 			$the_content = $post->post_content;
-			$the_content = str_replace('[gallery', '[gallery id="'.$post->ID.'" ', $the_content);
+//			$the_content = str_replace('[gallery', '[gallery id="'.$post->ID.'" ', $the_content);
+			add_filter( 'post_gallery', 'ljxp_inline_gallery', 9, 2);
 			$the_content = apply_filters('the_content', $the_content);
 			$the_content = str_replace(']]>', ']]&gt;', $the_content);
 			$the_content = ljxp_fix_relative_links($the_content);
 			$the_content = apply_filters('ljxp_pre_process_post', $the_content);
+			remove_filter( 'post_gallery', 'ljxp_inline_gallery', 9, 2);
 		
 			if(strpos($the_content, "<!--more") === false) {
 				$the_event .= $the_content;
@@ -347,20 +349,36 @@ function ljxp_post($post_id) {
 		$method = 'LJ.XMLRPC.editevent';
 	}
 
+	//$client->debug = true;
+	
 	// And awaaaayyy we go!
 	if (!$client->query($method, $args)) {
 		$errors[$client->getErrorCode()] = $client->getErrorMessage();
 	}
 
-	// If there were errors, store them
-	update_option('ljxp_error_notice', $errors);
-
 	// If we were making a new post on LJ, we need the itemid for future reference
-	if('LJ.XMLRPC.postevent' == $method) {
+	if ('LJ.XMLRPC.postevent' == $method) {
 		$response = $client->getResponse();
 		// Store it to the metadata
 		add_post_meta($post_id, 'ljID', $response['itemid'], true);
+		add_post_meta($post_id, 'ljURL', $response['url'], true);
+		/*
+		// for some reason these fail on private posts when the keys are unique
+		if ($post->post_status == 'private') {
+			add_post_meta($post_id, 'ljID', $response['itemid']);
+			add_post_meta($post_id, 'ljURL', $response['url']);
+		}
+		else {
+			$errors['itemid'] = add_post_meta($post_id, 'ljID', $response['itemid'], true);
+			$errors['url'] = add_post_meta($post_id, 'ljURL', $response['url'], true);
+			//var_dump($response);
+		}
+		/**/
 	}
+	
+	// If there were errors, store them
+	update_option('ljxp_error_notice', $errors);
+	
 	// If you don't return this, other plugins and hooks won't work
 	return $post_id;
 }
@@ -413,21 +431,21 @@ function ljxp_delete($post_id) {
 
 	);
 
-
 	// And awaaaayyy we go!
 	if (!$client->query('LJ.XMLRPC.editevent', $args))
 		$errors[$client->getErrorCode()] = $client->getErrorMessage();
 
-	delete_post_meta($post_id, 'ljID');
+//	delete_post_meta($post_id, 'ljID');
+//	delete_post_meta($post_id, 'ljURL');
 	update_option('ljxp_error_notice', $errors );
-
+	
 	return $post_id;
 }
 
 function ljxp_edit($post_id) {
 	// This function will delete a post from LJ if it's changed from the
 	// published status or if crossposting was just disabled on this post
-
+	
 	// Pull the post_id
 	$ljxp_post_id = get_post_meta($post_id, 'ljID', true);
 
@@ -438,15 +456,115 @@ function ljxp_edit($post_id) {
 	}
 
 	$post = & get_post($post_id);
+	$options = ljxp_get_options();
 
-	// See if the post is currently published. If it's been crossposted and its
-	// state isn't published AND it wasn't set to private with a setting that publishes private posts, then it should be deleted
-	// Also, if it has been crossposted but it's set to not crosspost, then delete it
-	if(('publish' != $post->post_status || ('private' == $post->post_status && $options['privacy_private'] == 'no_lj')) || 1 == get_post_meta($post_id, 'no_lj', true)) {
+	// If any of the following are true, delete it:
+	// - It's changed to private, and we've chosen not to crosspost private entries
+	// - It now isn't published or private (trash, pending, draft, etc.)
+	// - It was crossposted but now it's set to not crosspost
+	if (
+		('private' == $post->post_status && $options['privacy_private'] == 'no_lj') || 
+		('publish' != $post->post_status && 'private' != $post->post_status) || 
+		1 == get_post_meta($post_id, 'no_lj', true)
+		) {
 		ljxp_delete($post_id);
 	}
 
+	if ('private' == $post->post_status && $options['privacy_private'] != 'no_lj')
+		ljxp_post($post_id);
+
 	return $post_id;
+}
+
+function ljxp_inline_gallery($output, $attr) {
+	global $post;
+	
+	// We're trusting author input, so let's at least make sure it looks like a valid orderby statement
+	if ( isset( $attr['orderby'] ) ) {
+		$attr['orderby'] = sanitize_sql_orderby( $attr['orderby'] );
+		if ( !$attr['orderby'] )
+			unset( $attr['orderby'] );
+	}
+
+	extract(shortcode_atts(array(
+		'order'      => 'ASC',
+		'orderby'    => 'menu_order ID',
+		'id'         => $post->ID,
+		'itemtag'    => 'dl',
+		'icontag'    => 'dt',
+		'captiontag' => 'dd',
+		'columns'    => 3,
+		'size'       => 'thumbnail',
+		'include'    => '',
+		'exclude'    => ''
+	), $attr));
+
+	$id = intval($id);
+	if ( 'RAND' == $order )
+		$orderby = 'none';
+
+	if ( !empty($include) ) {
+		$include = preg_replace( '/[^0-9,]+/', '', $include );
+		$_attachments = get_posts( array('include' => $include, 'post_status' => 'inherit', 'post_type' => 'attachment', 'post_mime_type' => 'image', 'order' => $order, 'orderby' => $orderby) );
+
+		$attachments = array();
+		foreach ( $_attachments as $key => $val ) {
+			$attachments[$val->ID] = $_attachments[$key];
+		}
+	} elseif ( !empty($exclude) ) {
+		$exclude = preg_replace( '/[^0-9,]+/', '', $exclude );
+		$attachments = get_children( array('post_parent' => $id, 'exclude' => $exclude, 'post_status' => 'inherit', 'post_type' => 'attachment', 'post_mime_type' => 'image', 'order' => $order, 'orderby' => $orderby) );
+	} else {
+		$attachments = get_children( array('post_parent' => $id, 'post_status' => 'inherit', 'post_type' => 'attachment', 'post_mime_type' => 'image', 'order' => $order, 'orderby' => $orderby) );
+	}
+
+	if ( empty($attachments) )
+		return '';
+
+	if ( is_feed() ) {
+		$output = "\n";
+		foreach ( $attachments as $att_id => $attachment )
+			$output .= wp_get_attachment_link($att_id, $size, true) . "\n";
+		return $output;
+	}
+
+	$itemtag = tag_escape($itemtag);
+	$captiontag = tag_escape($captiontag);
+	$columns = intval($columns);
+	$itemwidth = $columns > 0 ? floor(100/$columns) : 100;
+	$float = is_rtl() ? 'right' : 'left';
+
+	$selector = "gallery-{$instance}";
+
+	$gallery_style = $gallery_div = '';
+	$size_class = sanitize_html_class( $size );
+	$gallery_div = "<div style='margin: auto;'>";
+	
+	$i = 0;
+	foreach ( $attachments as $id => $attachment ) {
+		$link = isset($attr['link']) && 'file' == $attr['link'] ? wp_get_attachment_link($id, $size, false, false) : wp_get_attachment_link($id, $size, true, false);
+
+		$output .= "<{$itemtag} style='float: {$float}; margin-top: 10px; text-align: center; width: {$itemwidth}%;'>";
+		$output .= "
+			<{$icontag} class='gallery-icon'>
+				$link
+			</{$icontag}>";
+		if ( $captiontag && trim($attachment->post_excerpt) ) {
+			$output .= "
+				<{$captiontag} style='margin-left: 0;'>
+				" . wptexturize($attachment->post_excerpt) . "
+				</{$captiontag}>";
+		}
+		$output .= "</{$itemtag}>";
+		if ( $columns > 0 && ++$i % $columns == 0 )
+			$output .= '<br style="clear: both" />';
+	}
+
+	$output .= "
+			<br style='clear: both;' />
+		</div>\n";
+
+	return $output;
 }
 
 function ljxp_fix_relative_links($content) {
@@ -457,26 +575,21 @@ function ljxp_fix_relative_links($content) {
 	}
 	if (!empty($hrefs)) {
 		$count = count($hrefs);
-		$url = get_bloginfo('url');
-		$parsed = parse_url($url);
-		$site = $parsed['host']; // root domain of this site
+		if (MULTISITE)
+			$site = network_site_url();
+		else
+			$site = site_url();
 
 		foreach ($hrefs as $href) {
-			/* // we can leave these alone
-			// href="http://foo.com/images/foo"
-			if (preg_match('/^http:\/\//', $href)) { 
-				$linkpath = $matches[1][$i];			
-			}
-			/**/
 			// href="/images/foo"
 			if ('/' == substr($href, 0, 1)) { 
 				$linkpath = $site . $href;
 			}
 			// href="../../images/foo" or href="images/foo"
 			else { 
-				$linkpath = dirname($path) . '/' . $href;
+				$linkpath = $site . '/' . $href;
 			}
-			// intersect base path and src, or just clean up junk
+			// intersect base URL and href, or just clean up junk
 			$linkpath = ljxp_remove_dot_segments($linkpath);
 		 
 			$content = str_replace($href, $linkpath, $content);
@@ -503,6 +616,8 @@ function ljxp_remove_dot_segments( $path ) {
 	if ( $outPath != '/' &&
 	    (mb_strlen($path)-1) == mb_strrpos( $path, '/', 'UTF-8' ) )
 	    $outPath .= '/';
+	$outPath = str_replace('http:/', 'http://', $outPath);
+	$outPath = str_replace('https:/', 'https://', $outPath);
 	return $outPath;
 }
 
@@ -531,13 +646,19 @@ function lj_xp_print_notices() {
 					$class = 'error';
 					break;
 				case '101' : 
-					$msg .= sprintf(__('Could not crosspost. Please reenter your %s password in the <a href="%s">options screen</a> and try again. (%s : %s)', 'lj-xp'), 'options-general.php?page=lj_xp.php', 'options-general.php?page=lj-xp-options.php', $code, $error );
+					$msg .= sprintf(__('Could not crosspost. Please reenter your %s password in the <a href="%s">options screen</a> and try again. (%s : %s)', 'lj-xp'), $options['host'], 'options-general.php?page=lj-xp-options.php', $code, $error );
 					$class = 'error';
 					break;
 				case '302' : 
 					$msg .= sprintf(__('Could not crosspost the updated entry to %s. (%s : %s)', 'lj-xp'), $options['host'], $code, $error );
 					$class = 'error';
 					break;
+				case 'itemid':
+					$class = 'error';
+					$msg .= 'add post meta for ljID returned: '.$error;
+				case 'url':
+					$class = 'error';
+					$msg .= 'add post meta for URL returned: '.$error;
 				default: 
 					$msg .= sprintf(__('Error from %s: %s : %s', 'lj-xp'), $options['host'], $code, $error );
 					$class = 'error';
@@ -618,7 +739,7 @@ function ljxp_sidebar() {
 		<p class="ljxp-userpics">
 					<label for="ljxp_userpic"><?php _e('Choose userpic: ', 'lj-xp'); ?></label>
 					<select name="ljxp_userpic">
-						<option value="-1"><?php _e('Use default', 'lj-xp'); ?></option>
+						<option value="0"><?php _e('Use default', 'lj-xp'); ?></option>
 					<?php
 						$selected_userpic = get_post_meta($post->ID, 'ljxp_userpic', true);
 						foreach ($userpics as $userpic) { ?>
@@ -675,7 +796,7 @@ function ljxp_save($post_id) {
 
 	if(isset($_POST['ljxp_userpic'])) {
 		delete_post_meta($post_id, 'ljxp_userpic');
-		if($_POST['ljxp_userpic'] !== 0 && $_POST['ljxp_userpic'] !== "Use default") {
+		if(!empty($_POST['ljxp_userpic'])) {
 			add_post_meta($post_id, 'ljxp_userpic', $_POST['ljxp_userpic'], true);
 		}
 	}
@@ -732,19 +853,25 @@ function ljxp_settings_css() { ?>
 }
 
 add_action('admin_menu', 'ljxp_add_pages');
-$option = get_option('ljxp');
-if (!empty($option)) {
+$options = get_option('ljxp');
+if (!empty($options)) {
 	add_action('admin_init', 'ljxp_meta_box', 1);
 	add_action('add_meta_boxes', 'ljxp_meta_box');
 	add_action('admin_head-post-new.php', 'ljxp_css');
 	add_action('admin_head-post.php', 'ljxp_css');
 	add_action('publish_post', 'ljxp_post');
 	add_action('publish_future_post', 'ljxp_post');
+	add_action('draft_to_private', 'ljxp_post');
+	add_action('new_to_private', 'ljxp_post');
+	add_action('pending_to_private', 'ljxp_post');
+	add_action('private_to_public', 'ljxp_edit');
+	add_action('private_to_password', 'ljxp_edit');
+	add_action('untrashed_post', 'ljxp_edit');
 	add_action('edit_post', 'ljxp_edit');
 	add_action('delete_post', 'ljxp_delete');
-	add_action('publish_post', 'ljxp_save', 1);
+//	add_action('publish_post', 'ljxp_save', 1);
 	add_action('save_post', 'ljxp_save', 1);
-	add_action('edit_post', 'ljxp_save', 1);
+//	add_action('edit_post', 'ljxp_save', 1);
 	add_action('admin_head-post.php', 'ljxp_error_notice');
 	add_action('admin_head-post-new.php', 'ljxp_error_notice');
 }
@@ -752,8 +879,12 @@ if (!empty($option)) {
 // Borrow wp-lj-comments by A-Bishop:
 if(!function_exists('lj_comments')){
 	function lj_comments($post_id){
-		$link = plugins_url( "wp-lj-comments.php?post_id=".$post_id , __FILE__ );
-		return '<img src="'.$link.'" border="0">';
+		// disable until this works
+//		if ( !is_wp_error( $post_id ) ) {
+//		$link = plugins_url( "wp-lj-comments.php?post_id=".$post_id , __FILE__ );
+//		return '<img src="'.$link.'" border="0">';
+//	}
+	return '';
 	}
 }
 
