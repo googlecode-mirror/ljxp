@@ -44,7 +44,9 @@ to your WP blog instead!
 * Relative links are now converted to full URLs before the content is crossposted (<a href="http://code.google.com/p/ljxp/issues/detail?id=134">#134</a>)
 * The LJ URL of the post is now stored in a custom field, so you can easily add the link to your WP entry. (<a href="http://code.google.com/p/ljxp/issues/detail?id=51">#51</a>)
 * Galleries are now crossposted with inline styles, so their grid layout is maintained (<a href="http://code.google.com/p/ljxp/issues/detail?id=117">#117</a>)
-* When posting to a community, deleted WP entries are now deleted from the community.
+* When posting to a community, deleted WP entries are now deleted from the community correctly.
+* New Help screen on the options page.
+* Updated POT for translators.
 
 = 2.1.2 = 
 * Fixed category handling and a warning about arrays on line 89 that could also lead to "headers already sent" message on some servers.
@@ -69,6 +71,7 @@ to your WP blog instead!
 * options page cleanup
 * get rid of `has_cap` deprecated argument notice
 * less obnoxious default styling for the crosspost header/footer
+* A-Bishop's <a href="http://wordpress.org/extend/plugins/livejournal-comments/">LiveJournal Comments</a> is now bundled with this plugin, eliminating the need for extra setup. This version has been edited to use a more reliable configuration, and this copy will be updated alongside LJ-XP.
 
 == Upgrade Notice ==
 = 2.1 =
@@ -79,3 +82,6 @@ to your WP blog instead!
 
 = 2.1.2 =
 * 2.1 shows an error when LJ is down rather than stopping WordPress. Supports userpics, cut text; fixed [gallery] images and meta boxes. New in 2.1.1: turn off crossposting by default; crosspost excerpt or full text; [author] tag; `<!--more-->` tags with text. 2.1.2: fix line 89 error.
+
+= 2.2 =
+* New: default LJ privacy levels for private WP posts; custom header/footer fields (see wiki); link to LJ post (see wiki); excerpts auto-generated; relative WP links crossposted as complete URLs; inline gallery styling to maintain grid layout; fix for deleting community posts.

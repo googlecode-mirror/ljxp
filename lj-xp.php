@@ -11,7 +11,6 @@ Author URI: http://code.google.com/p/ljxp/
 /*
 SCL TODO:
 - use built-in WP stuff for curl (search SCL)
-- Fix comments display -- A-Bishop's code is trying to load wp-config directly; stop that
 /**/
 
 require_once(ABSPATH . '/wp-includes/class-IXR.php');
@@ -49,9 +48,9 @@ function ljxp_post($post_id) {
 	$post = &get_post($post_id);
 	
 	// Get postmeta overrides
-	$privacy = get_post_meta($post_id, 'ljxp_privacy', true);
+	$privacy = get_post_meta($post->ID, 'ljxp_privacy', true);
 	if (isset($privacy) && $privacy != 0) $options['privacy'] = $options['privacy_private'] = $privacy;
-	$comments = get_post_meta($post_id, 'ljxp_comments', true);
+	$comments = get_post_meta($post->ID, 'ljxp_comments', true);
 	if (isset($comments) && $comments != 0) $options['comments'] = $comments;
 
 	if (!is_array($options['skip_cats'])) $options['skip_cats'] = array();
@@ -59,9 +58,9 @@ function ljxp_post($post_id) {
 		
 	// If the post was manually set to not be crossposted, or nothing was set and the default is not to crosspost,
 	// or it's private and the default is not to crosspost private posts, give up now
-	if (0 == $options['crosspost'] || get_post_meta($post_id, 'no_lj', true) || ('private' == $post->post_status && $options['privacy_private'] == 'no_lj')) {
+	if (0 == $options['crosspost'] || get_post_meta($post->ID, 'no_lj', true) || ('private' == $post->post_status && $options['privacy_private'] == 'no_lj')) {
 		$errors['nopost'] = 'This post was set to not crosspost.';
-		return $post_id;
+		return $post->ID;
 	}
 
 	// If the post shows up in the forbidden category list and it has been
@@ -69,7 +68,7 @@ function ljxp_post($post_id) {
 	// delete the post. Otherwise, just give up now
 	$do_crosspost = 0;
 
-	$postcats = wp_get_post_categories($post_id);
+	$postcats = wp_get_post_categories($post->ID);
 	foreach($postcats as $cat) {
 		if(in_array($cat, $options['copy_cats'])) {
 			$do_crosspost = 1;
@@ -81,7 +80,7 @@ function ljxp_post($post_id) {
 	}
 
 	if(!$do_crosspost) {
-		return ljxp_delete($post_id);
+		return ljxp_delete($post->ID);
 	}
 
 	// And create our connection
@@ -111,8 +110,8 @@ function ljxp_post($post_id) {
 	$cats = array();
 	$tags = array();
 
-	$cats = wp_get_post_categories($post_id, array('fields' => 'all')); 
-	$tags = wp_get_post_tags($post_id, array('fields' => 'all'));
+	$cats = wp_get_post_categories($post->ID, array('fields' => 'all')); 
+	$tags = wp_get_post_tags($post->ID, array('fields' => 'all'));
 
 
 	// Need advice on merging all ( /\ and \/ ) this code
@@ -145,14 +144,14 @@ function ljxp_post($post_id) {
 		// If the post is not password protected, follow standard procedure
 		if(!$post->post_password) {
 			$postHeader .= __('Originally published at', 'lj-xp');
-			$postHeader .= ' <a href="'.get_permalink($post_id).'">';
+			$postHeader .= ' <a href="'.get_permalink($post->ID).'">';
 			$postHeader .= $blogName;
 			$postHeader .= '</a>.';
 		}
 		// If the post is password protected, put up a special message
 		else {
 			$postHeader .= __('This post is password protected. You can read it at', 'lj-xp');
-			$postHeader .= ' <a href="'.get_permalink($post_id).'">';
+			$postHeader .= ' <a href="'.get_permalink($post->ID).'">';
 			$postHeader .= $blogName;
 			$postHeader .= '</a>, ';
 			$postHeader .= __('where it was originally posted', 'lj-xp');
@@ -162,10 +161,10 @@ function ljxp_post($post_id) {
 		// Depending on whether comments or allowed or not, alter the header
 		// appropriately
 		if($options['comments']) {
-			$postHeader .= sprintf(__(' You can comment here or <a href="%s">there</a>.', 'lj-xp'), get_permalink($post_id).'#comments');
+			$postHeader .= sprintf(__(' You can comment here or <a href="%s">there</a>.', 'lj-xp'), get_permalink($post->ID).'#comments');
 		}
 		else {
-			$postHeader .= sprintf(__(' Please leave any <a href="%s">comments</a> there.', 'lj-xp'), get_permalink($post_id).'#comments');
+			$postHeader .= sprintf(__(' Please leave any <a href="%s">comments</a> there.', 'lj-xp'), get_permalink($post->ID).'#comments');
 		}
 
 		$postHeader .= '</small></p>';
@@ -174,9 +173,7 @@ function ljxp_post($post_id) {
 		$postHeader = $options['custom_header'];
 
 		// find [author]
-		$thepost = get_post($postid);
-		$userid = $thepost->post_author;
-		$author = get_userdata( $userid );
+		$author = get_userdata( $post->post_author );
 		$author = $author->display_name;
 		
 		// pre-post formatting for tags and categories
@@ -190,9 +187,9 @@ function ljxp_post($post_id) {
 		$hcats = implode(', ', (array)$hcats);
 
 		$find = array('[blog_name]', '[blog_link]', '[permalink]', '[comments_link]', '[comments_count]', '[tags]', '[categories]', '[author]');
-		$replace = array($blogName, get_option('home'), get_permalink($post_id), get_permalink($post_id).'#comments', lj_comments($post_id), $htags, $hcats, $author);
+		$replace = array($blogName, get_option('home'), get_permalink($post->ID), get_permalink($post->ID).'#comments', lj_comments($post->ID), $htags, $hcats, $author);
 		$postHeader = str_replace($find, $replace, $postHeader);
-		$postHeader = apply_filters('ljxp_post_header', $postHeader, $post_id);
+		$postHeader = apply_filters('ljxp_post_header', $postHeader, $post->ID);
 	}
 
 	// $the_event will eventually be passed to the LJ XML-RPC server.
@@ -253,7 +250,7 @@ function ljxp_post($post_id) {
 						$the_event .= $content[1];
 						break;
 					case "link":
-						$the_event .= sprintf('<p><a href="%s#more-%s">', get_permalink($post_id), $post_id) .
+						$the_event .= sprintf('<p><a href="%s#more-%s">', get_permalink($post->ID), $post->ID) .
 							$more_text . '</a></p>';
 						break;
 					case "lj-cut":
@@ -294,7 +291,7 @@ function ljxp_post($post_id) {
 					'min'				=> date('i', $date),
 					'props'				=> array('opt_nocomments'	=> !$options['comments'], // allow comments?
 												 'opt_preformatted'	=> true, // event text is preformatted
-												 'opt_backdated'	=> !($recent_id == $post_id), // prevent updated
+												 'opt_backdated'	=> !($recent_id == $post->ID), // prevent updated
 																	// post from being show on top
 												'taglist'			=> ($options['tag'] != 0 ? $cat_string : ''),
 												'picture_keyword'		=> (!empty($options['userpic']) ? $options['userpic'] : ''),
@@ -342,9 +339,9 @@ function ljxp_post($post_id) {
 	$method = 'LJ.XMLRPC.postevent';
 
 	// But check to see if there's an LJ post associated with our WP post
-	if(get_post_meta($post_id, 'ljID', true)) {
+	if(get_post_meta($post->ID, 'ljID', true)) {
 		// If there is, add the itemid attribute and change from posting to editing
-		$args['itemid'] = get_post_meta($post_id, 'ljID', true);
+		$args['itemid'] = get_post_meta($post->ID, 'ljID', true);
 		$method = 'LJ.XMLRPC.editevent';
 	}
 	
