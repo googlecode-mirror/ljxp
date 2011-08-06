@@ -1,5 +1,5 @@
+#summary using Bulk Edit instead of Crosspost All to catch up on a few days' worth of WP posts
 #labels Phase-Implementation
-#using Bulk Edit instead of Crosspost All to catch up on a few days' worth of WP posts
 
 If LiveJournal has been down for a few days and you haven't been able to crosspost, you will of course want to catch up when the site comes back up. However, using the "Update options and crosspost all WordPress entries" button is very slow if you have a large site, and it hammers LiveJournal just as it's getting back on its feet.
 
