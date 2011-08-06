@@ -84,4 +84,4 @@ to your WP blog instead!
 * 2.1 shows an error when LJ is down rather than stopping WordPress. Supports userpics, cut text; fixed [gallery] images and meta boxes. New in 2.1.1: turn off crossposting by default; crosspost excerpt or full text; [author] tag; `<!--more-->` tags with text. 2.1.2: fix line 89 error.
 
 = 2.2 =
-* New: default LJ privacy levels for private WP posts; custom header/footer fields (see wiki); link to LJ post (see wiki); excerpts auto-generated; relative WP links crossposted as complete URLs; inline gallery styling to maintain grid layout; fix for deleting community posts.
+* New: default LJ privacy levels for private WP posts; custom header/footer fields (see wiki); link to LJ post (see wiki); excerpts auto-generated; relative WP links crossposted as complete URLs; inline gallery styling to maintain grid layout; fix for deleting community posts; help screen.
