@@ -142,7 +142,23 @@ function ljxp_add_pages() {
 	$pg = add_options_page("LiveJournal", "LiveJournal", 'manage_options', basename(__FILE__), 'ljxp_display_options');
 	add_action("admin_head-$pg", 'ljxp_settings_css');
 	// register setting
-	add_action( 'admin_init', 'register_ljxp_settings' );	
+	add_action( 'admin_init', 'register_ljxp_settings' );
+	
+	// Help screen 
+	$text = '<h3>'.__('How To', 'lj-xp')."</h3>
+    <ul>
+		<li>" . sprintf(__('<a href="%s">Add a link to the LiveJournal post</a> in your WordPress theme', 'lj-xp' ), 'http://code.google.com/p/ljxp/wiki/LinkingToLJ')."</li>        
+		<li>" . sprintf(__('<a href="%s">Add custom fields</a> ([foo]) to the crosspost header or footer', 'lj-xp' ), 'http://code.google.com/p/ljxp/wiki/CustomHeaderFields')."</li>
+		<li>" . sprintf(__('<strong>Tip:</strong> If LJ has been down for a while and you just need to crosspost your last few entries, <a href="%s">using Bulk Edit</a> is much faster than the Crosspost All button.', 'lj-xp' ), 'http://code.google.com/p/ljxp/wiki/BulkEditvsCrosspostAll')."</li>
+    </ul>";
+	$text .= '<h3>' . __( 'More Help', 'lj-xp' ) . '</h3>';
+
+	$text .= '<ul>';
+	$text .= '<li><a href="http://code.google.com/p/ljxp/">' . __( 'Plugin Home Page', 'lj-xp' ) . '</a></li>';
+	$text .= '<li><a href="http://code.google.com/p/ljxp/issues/list">' . __( 'Bug Tracker', 'lj-xp' ) . '</a> &mdash; report problems here</li>';
+	$text .= '</ul>';
+
+	add_contextual_help( $pg, $text );	
 }
 
 // Add link to options page from plugin list
