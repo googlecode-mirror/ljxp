@@ -3,15 +3,10 @@
 Plugin Name: LiveJournal Crossposter
 Plugin URI: http://code.google.com/p/ljxp/
 Description: Automatically copies all posts to a LiveJournal or other LiveJournal-based blog. Editing or deleting a post will be replicated as well.
-Version: 2.2.1-beta
+Version: 2.2.1
 Author: Arseniy Ivanov, Evan Broder, Corey DeGrandchamp, Stephanie Leary
 Author URI: http://code.google.com/p/ljxp/
 */
-
-/*
-SCL TODO:
-- use built-in WP stuff for curl (search SCL)
-/**/
 
 require_once(ABSPATH . '/wp-includes/class-IXR.php');
 require(ABSPATH . '/wp-includes/version.php');
@@ -864,7 +859,6 @@ if (!empty($options)) {
 // Borrow wp-lj-comments by A-Bishop:
 if(!function_exists('lj_comments')){
 	function lj_comments($post_id){
-		// disable until this works
 		if ( !is_wp_error( $post_id ) ) {
 			$link = plugins_url( "wp-lj-comments.php?post_id=".$post_id , __FILE__ );
 			return '<img src="'.$link.'" border="0">';
