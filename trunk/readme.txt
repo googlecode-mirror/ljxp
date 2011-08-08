@@ -36,6 +36,10 @@ to your WP blog instead!
 
 == Changelog ==
 
+= 2.2.1 =
+* Fixed the new relative link function so it leaves full URLs alone. (<a href="http://code.google.com/p/ljxp/issues/detail?id=141">#141</a>)
+* Now using WP's HTTP API rather than curl_*(), which means the userpic retrieval functions should work on more servers.
+
 = 2.2 =
 * New option: default LJ privacy levels for private WP posts. (<a href="http://code.google.com/p/ljxp/issues/detail?id=73">#73</a>)
 * Added support for custom fields in the header/footer. <a href="http://code.google.com/p/ljxp/wiki/CustomHeaderFields">See the wiki for documentation.</a> (<a href="http://code.google.com/p/ljxp/issues/detail?id=113">#113</a>)
