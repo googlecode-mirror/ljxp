@@ -577,11 +577,14 @@ function ljxp_update_userpics($username) {
 		try {
 			// Parse the data as an XML string. The atom feed has many fields, but the category/@term
 			// contains the name that is placed in the post metadata
+			// and content/@src contains the URL
 			$atom_doc = new SimpleXmlElement($atom_data['body'], LIBXML_NOCDATA);
 
 			foreach($atom_doc->entry as $entry) {
 				$attributes = $entry->category->attributes();
 				$term = $attributes['term'];
+//				$content = $entry->content->attributes();
+//				$src = $content['src'];
 				$new_userpics[] = html_entity_decode($term);
 			}
 		} catch (Exception $e) {
