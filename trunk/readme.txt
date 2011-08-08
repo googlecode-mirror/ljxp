@@ -89,3 +89,6 @@ to your WP blog instead!
 
 = 2.2 =
 * New: default LJ privacy levels for private WP posts; custom header/footer fields (see wiki); link to LJ post (see wiki); excerpts auto-generated; relative WP links crossposted as complete URLs; inline gallery styling to maintain grid layout; fix for deleting community posts; help screen.
+
+= 2.2.1 =
+* Fixed 2.2's relative link function so it leaves full URLs alone. The userpic retrieval functions should now work on more servers.
