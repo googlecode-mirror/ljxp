@@ -1,7 +1,7 @@
 #summary Frequently Asked Questions
 #labels Featured
 
-*Q: Can I add a link to the LJ post to my post or theme?*
+*Q: Can I add a link to the LJ post in my post or theme?*
 
 A: Yes. See [http://code.google.com/p/ljxp/wiki/LinkingToLJ LinkingToLJ].
 
@@ -36,6 +36,8 @@ Prior to 2.1.1, the ljID custom field was not set to be unique. Therefore, if so
   # write down all the ljID numbers stored in custom fields
   # delete all the ljID custom fields but one
   # Update the post. If you get the error, replace the ljID number with another from the list, and so on until you find the one that lets you crosspost.
+
+Note: in WordPress 3.1, most of the boxes on the Edit Post screen are hidden by default. If you don't see your custom fields, click the Screen Options tab (in the top right corner), then check the box for custom fields.
 
 * "Something went wrong - 208 : Client error: Invalid text encoding: The text entered is not a valid UTF-8 stream"*
 
