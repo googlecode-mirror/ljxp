@@ -1,5 +1,5 @@
 #summary How to add the link to the LJ post to your WP theme
-#labels Phase-Implementation,Featured
+#labels Phase-Implementation
 
 In 2.2, the URL of the crossposted LJ entry is stored as a custom field in your WordPress post. This makes it easy to show the LJ link in your WP theme.
 
