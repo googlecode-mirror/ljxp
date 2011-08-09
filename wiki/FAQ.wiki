@@ -1,8 +1,9 @@
 #summary Frequently Asked Questions
+#labels Featured
 
 *Q: Can I add a link to the LJ post to my post or theme?*
 
-A: Yes. See LinkingToLJ.
+A: Yes. See [http://code.google.com/p/ljxp/wiki/LinkingToLJ LinkingToLJ].
 
 *Q: Can I add more fields to the crosspost header/footer?*
 
