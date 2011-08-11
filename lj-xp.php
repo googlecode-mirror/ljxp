@@ -593,13 +593,24 @@ function ljxp_remove_dot_segments( $path ) {
 	$outPath = implode( '/', $outSegs );
 	if ( $path[0] == '/' )
 	    $outPath = '/' . $outPath;
-	if ( $outPath != '/' &&
-	    (mb_strlen($path)-1) == mb_strrpos( $path, '/', 'UTF-8' ) )
-	    $outPath .= '/';
+	if ( $outPath != '/' && (mb_strlen($path)-1) == mb_strrpos( $path, '/', 'UTF-8' ) )
+    	$outPath .= '/';
 	$outPath = str_replace('http:/', 'http://', $outPath);
 	$outPath = str_replace('https:/', 'https://', $outPath);
 	$outPath = str_replace(':///', '://', $outPath);
 	return $outPath;
+}
+
+// in case this server doesn't have php_mbstring enabled in php.ini...
+if (!function_exists('mb_strlen')) {
+	function mb_strlen($string) {
+		return strlen(utf8_decode($string));
+	}
+}
+if (!function_exists('mb_strrpos')) {
+	function mb_strrpos($haystack, $needle, $offset = 0) {
+		return strrpos(utf8_decode($haystack), $needle, $offset);
+	}
 }
 
 // Borrow wp-lj-comments by A-Bishop:
