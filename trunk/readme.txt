@@ -42,6 +42,7 @@ See the <a href="http://code.google.com/p/ljxp/wiki/FAQ">FAQ on the Google Code 
 
 = 2.2.2 =
 * Fixed the userpic and comment settings on individual posts. (<a href="http://code.google.com/p/ljxp/issues/detail?id=144">#144</a>)
+* Added some helpers to work around servers that do not support PHP's multibyte string functions.
 
 = 2.2.1 =
 * Fixed the new relative link function so it leaves full URLs alone. (<a href="http://code.google.com/p/ljxp/issues/detail?id=141">#141</a>)
@@ -101,4 +102,4 @@ See the <a href="http://code.google.com/p/ljxp/wiki/FAQ">FAQ on the Google Code 
 * Fixed 2.2's relative link function so it leaves full URLs alone. The userpic retrieval functions should now work on more servers.
 
 = 2.2.2 =
-* Fixed the userpic and comment settings in the per-post options.
+* Fixed the userpic and comment settings in the per-post options. Added some helpers to work around servers that do not support PHP's multibyte string functions.
