@@ -15,7 +15,7 @@ A: Not yet, but [http://code.google.com/p/ljxp/issues/detail?id=37 this is plann
 
 *Q: Can I post to more than one LiveJournal-based service?*
 
-A: [http://code.google.com/p/ljxp/issues/detail?id=57 Not yet.]
+A: [http://code.google.com/p/ljxp/issues/detail?id=57 Not yet], at least not directly. However, if one of the services you want to use has its own crosspost feature, you can daisy-chain them. For example, if you want to send your WP entries to both LiveJournal and Dreamwidth, set up your Dreamwidth account to crosspost to LiveJournal. Then configure this plugin for Dreamwidth.
 
 == Common Error Messages ==
  
