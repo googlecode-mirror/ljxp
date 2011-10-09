@@ -11,7 +11,7 @@ A: Yes, but it requires a little PHP knowledge on your part. (Just a little.) Se
 
 *Q: Can I use my custom friends filters?*
 
-A: Not yet, but [http://code.google.com/p/ljxp/issues/detail?id=37 this is planned for a future version.]
+A: Yes, as of version 2.3.
 
 *Q: Can I post to more than one LiveJournal-based service?*
 
